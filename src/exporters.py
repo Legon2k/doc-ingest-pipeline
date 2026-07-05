@@ -1,0 +1,142 @@
+"""
+Exporters module.
+
+Responsible for persisting all pipeline artifacts to:
+  1. A timestamped archive folder inside Google Drive.
+  2. A structured Markdown note inside an Obsidian vault.
+"""
+
+import shutil
+from datetime import date
+from pathlib import Path
+
+from src.config import Config
+
+
+class LocalArchiveExporter:
+    """Archives pipeline artifacts to Google Drive and creates an Obsidian note."""
+
+    def archive_all_artifacts(
+        self,
+        category: str,
+        company: str,
+        file_name_stem: str,
+        source_file: Path,
+        vacancy_text: str,
+        tailored_md: str,
+    ) -> None:
+        """Copy all artifacts to a dated archive folder and create an Obsidian note.
+
+        Archive folder naming convention:
+            <GOOGLE_DRIVE_PATH>/Archive/YYYY-MM-DD_<Company>_<Category>/
+
+        Artifacts written:
+            - Original source file (screenshot or text)
+            - <stem>_vacancy.md   — extracted vacancy text
+            - <stem>_resume.md    — tailored resume in Markdown
+            - <stem>_resume.pdf   — mock PDF placeholder
+
+        Args:
+            category:       Vacancy category / template name (e.g. "architect").
+            company:        Company name parsed from the filename.
+            file_name_stem: Filename without extension (e.g. "Acme_Solution_Architect").
+            source_file:    Path to the original vacancy file.
+            vacancy_text:   Extracted vacancy content as Markdown.
+            tailored_md:    Tailored resume content as Markdown.
+        """
+        today = date.today().strftime("%Y-%m-%d")
+        folder_name = f"{today}_{company}_{category}"
+        archive_dir = Config.GOOGLE_DRIVE_PATH / "Archive" / folder_name
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        # 1. Copy the original source file (screenshot or text)
+        shutil.copy2(source_file, archive_dir / source_file.name)
+
+        # 2. Save extracted vacancy text
+        (archive_dir / f"{file_name_stem}_vacancy.md").write_text(
+            vacancy_text, encoding="utf-8"
+        )
+
+        # 3. Save the tailored resume
+        (archive_dir / f"{file_name_stem}_resume.md").write_text(
+            tailored_md, encoding="utf-8"
+        )
+
+        # 4. Mock PDF — placeholder until a real PDF renderer (e.g. weasyprint) is wired in
+        _write_mock_pdf(archive_dir / f"{file_name_stem}_resume.pdf")
+
+        print(f"[Exporter] Artifacts archived → {archive_dir}")
+
+        # 5. Create an Obsidian note
+        self._create_obsidian_note(
+            category=category,
+            company=company,
+            file_name_stem=file_name_stem,
+            archive_path=archive_dir,
+            tailored_md=tailored_md,
+            today=today,
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _create_obsidian_note(
+        self,
+        category: str,
+        company: str,
+        file_name_stem: str,
+        archive_path: Path,
+        tailored_md: str,
+        today: str,
+    ) -> None:
+        """Write a structured Markdown note to the Obsidian vault.
+
+        Note location:
+            <OBSIDIAN_VAULT_PATH>/JobSearch/Applications/YYYY-MM-DD_<Company>_<Category>.md
+
+        The note contains YAML frontmatter followed by the tailored resume content,
+        making it fully searchable inside Obsidian.
+        """
+        notes_dir = Config.OBSIDIAN_VAULT_PATH / "JobSearch" / "Applications"
+        notes_dir.mkdir(parents=True, exist_ok=True)
+
+        # Derive a human-readable role from the filename stem.
+        # Convention: "<Company>_<Role_Words>" → join remaining parts with spaces.
+        role_parts = file_name_stem.split("_")[1:]
+        role = " ".join(role_parts) if role_parts else file_name_stem
+
+        frontmatter = (
+            "---\n"
+            f"type: job-application\n"
+            f"company: \"{company}\"\n"
+            f"role: \"{role}\"\n"
+            f"date: {today}\n"
+            f"status: applied\n"
+            f"archive_path: \"{archive_path}\"\n"
+            "---\n\n"
+        )
+
+        note_path = notes_dir / f"{today}_{company}_{category}.md"
+        note_path.write_text(frontmatter + tailored_md, encoding="utf-8")
+
+        print(f"[Exporter] Obsidian note created → {note_path}")
+
+
+# ------------------------------------------------------------------
+# Module-level helpers
+# ------------------------------------------------------------------
+
+def _write_mock_pdf(path: Path) -> None:
+    """Write a minimal mock PDF file as a placeholder.
+
+    Replace this function with a real PDF renderer (e.g. weasyprint, reportlab)
+    when PDF output is required.
+    """
+    path.write_bytes(
+        b"%PDF-1.4\n"
+        b"1 0 obj\n<< /Type /Catalog >>\nendobj\n"
+        b"%% Mock PDF - generated by doc-ingest-pipeline\n"
+        b"%% Replace _write_mock_pdf() with a real PDF renderer.\n"
+        b"%%EOF\n"
+    )

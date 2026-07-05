@@ -1,0 +1,32 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment variables (never commit secrets)
+.env
+
+# Local working directories (user data, not source)
+vacancies/
+output/
+
+# The templates/ folder is intentionally tracked by Git.
+# It contains abstract resume samples for portfolio purposes.
+
+# Build / distribution
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

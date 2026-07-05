@@ -1,0 +1,17 @@
+[project]
+name = "doc-ingest-pipeline"
+version = "0.1.0"
+description = "Automated unstructured document processing and resume tailoring pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.35.0",
+    "pillow>=10.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/doc-ingest-pipeline"
+
+# No build backend needed — this project is run directly via `uv run main.py`.
+# Add a build-system table here if you later want to publish to PyPI.
