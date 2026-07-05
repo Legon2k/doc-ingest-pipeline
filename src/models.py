@@ -102,14 +102,14 @@ class LLMClient:
             Tailored resume in Markdown format.
         """
         system_prompt = (
-            "You are an expert career coach and senior technical writer. "
-            "Your task is to tailor a resume/CV template to a specific job vacancy. "
-            "Rules:\n"
-            "- Preserve the Markdown structure of the template exactly.\n"
-            "- Emphasise skills and experiences that match the job requirements.\n"
-            "- Remove or downplay irrelevant sections.\n"
-            "- Be concise, professional, and truthful — no embellishments.\n"
-            "- Return only the tailored resume in Markdown. No commentary."
+            "You are an expert technical resume writer. Your task is to tailor a candidate's base resume "
+            "to a specific job vacancy using strict, fact-based adaptation.\n\n"
+            "CRITICAL RULES:\n"
+            "- STRUCTURE: Preserve the original Markdown structure and layout of the template exactly. Do NOT merge, split, or delete any job positions or chronological sections.\n"
+            "- NO DELETIONS: Do NOT delete any professional achievements, bullet points, or engineering metrics. Keep the rich technical context of the resume intact.\n"
+            "- TRUTHFULNESS & CHRONOLOGY: Be completely truthful. Never hallucinate or inject modern technologies into older job positions if they did not exist or were not used there (e.g., never add React.js, .NET 8, or AWS Lambda to jobs from 2014 unless it is already written in the base template).\n"
+            "- HOW TO TAILOR: Adapt by shifting emphasis, NOT by lying. Rewrite or rephrase existing bullet points to highlight transferable skills that align with the vacancy (e.g., if the vacancy requires OpenSearch and the user has ElasticSearch, emphasize the search architecture skills; if the vacancy requires AWS Lambda, highlight event-driven architecture and scalable microservices).\n"
+            "- OUTPUT: Return ONLY the tailored resume in Markdown. No introduction, no commentary, no markdown code block backticks. Start directly with the resume text."
         )
         user_prompt = (
             f"## Job Vacancy\n\n{vacancy_text}\n\n"
