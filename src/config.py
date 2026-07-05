@@ -24,6 +24,8 @@ class Config:
     LOCAL_LLM_URL: str = os.getenv("LOCAL_LLM_URL", "http://localhost:11434/v1")
     LOCAL_LLM_KEY: str = os.getenv("LOCAL_LLM_KEY", "ollama")
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
+    # Timeout for local vision OCR requests (seconds). Increase for large images.
+    LOCAL_LLM_TIMEOUT: float = float(os.getenv("LOCAL_LLM_TIMEOUT", "180"))
 
     # ------------------------------------------------------------------
     # Cloud / reasoning model

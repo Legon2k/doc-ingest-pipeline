@@ -54,18 +54,15 @@ class LLMClient:
         suffix = image_path.suffix.lower().lstrip(".")
         mime_type = "image/png" if suffix == "png" else "image/jpeg"
 
+        #"Act as a precise OCR engine. Read the text from this image and list the technologies exactly as they appear. Do not extrapolate, do not add missing punctuation, and do not invent neighboring context. Output only the found text."
         response = self.local_client.chat.completions.create(
             model=Config.VISION_MODEL,
+            temperature=0.0,
+            timeout=Config.LOCAL_LLM_TIMEOUT,
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{encoded}"
-                            },
-                        },
                         {
                             "type": "text",
                             "text": (
@@ -73,6 +70,12 @@ class LLMClient:
                                 "Preserve the original structure and formatting as Markdown. "
                                 "Return only the extracted text — no commentary or preamble."
                             ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{encoded}"
+                            },
                         },
                     ],
                 }

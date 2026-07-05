@@ -9,6 +9,7 @@ __pycache__/
 
 # Environment variables (never commit secrets)
 .env
+.env.backup.*
 
 # Local working directories (user data, not source)
 vacancies/

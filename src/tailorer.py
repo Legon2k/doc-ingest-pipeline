@@ -23,6 +23,7 @@ For each vacancy file found, the engine:
   4. Exports all artifacts via LocalArchiveExporter.
 """
 
+import time
 from pathlib import Path
 
 from src.config import Config
@@ -59,6 +60,7 @@ class ResumeTailorerEngine:
 
         processed = 0
         skipped = 0
+        start_time = time.perf_counter()
 
         for category_dir in sorted(_VACANCIES_DIR.iterdir()):
             if not category_dir.is_dir():
@@ -88,9 +90,11 @@ class ResumeTailorerEngine:
                 self._process_file(vacancy_file, category, template_md)
                 processed += 1
 
+        elapsed = time.perf_counter() - start_time
         print(
             f"\n[Engine] Pipeline complete — "
-            f"processed: {processed}, skipped: {skipped}."
+            f"processed: {processed}, skipped: {skipped}.\n"
+            f"[Engine] Execution time: {elapsed:.1f}s"
         )
 
     # ------------------------------------------------------------------
@@ -120,12 +124,16 @@ class ResumeTailorerEngine:
 
         try:
             # Stage 1 — extract vacancy text
+            t0 = time.perf_counter()
             vacancy_text = self._parser.to_text(vacancy_file)
-            print(f"[Engine]     Vacancy extracted ({len(vacancy_text):,} chars)")
+            t1 = time.perf_counter()
+            print(f"[Engine]     Vacancy extracted ({len(vacancy_text):,} chars) in {t1 - t0:.2f}s")
 
             # Stage 2 — tailor the resume
+            t0 = time.perf_counter()
             tailored_md = self._llm.tailor_resume_via_cloud(vacancy_text, template_md)
-            print(f"[Engine]     Resume tailored  ({len(tailored_md):,} chars)")
+            t1 = time.perf_counter()
+            print(f"[Engine]     Resume tailored  ({len(tailored_md):,} chars) in {t1 - t0:.2f}s")
 
             # Stage 3 — export all artifacts
             self._exporter.archive_all_artifacts(
