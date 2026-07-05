@@ -66,9 +66,13 @@ class LLMClient:
                         {
                             "type": "text",
                             "text": (
-                                "Extract all text from this job vacancy screenshot. "
-                                "Preserve the original structure and formatting as Markdown. "
-                                "Return only the extracted text — no commentary or preamble."
+                                "Act as a dumb, precise OCR scanner. Your only task is to read the image from top to bottom "
+                                "and transcribe EVERY single visible word, line by line. "
+                                "CRITICAL RULES:\n"
+                                "1. Start from the very first pixel at the top (extract the main job title, company name, location, and citizenship requirements).\n"
+                                "2. Do NOT summarize, do NOT rephrase, and do NOT skip any sections.\n"
+                                "3. Keep lists and technologies exactly where they are physically located. Do NOT merge 'Nice to have' into 'Responsibilities'.\n"
+                                "4. Output ONLY the raw transcribed text. No introductions, no Markdown improvements, no explanations."
                             ),
                         },
                         {
