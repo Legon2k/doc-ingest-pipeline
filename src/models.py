@@ -102,27 +102,35 @@ class LLMClient:
             Tailored resume in Markdown format.
         """
         system_prompt = (
-            "You are an expert technical resume writer. Your task is to tailor a candidate's base resume "
-            "to a specific job vacancy using strict, fact-based adaptation.\n\n"
-            "CRITICAL RULES:\n"
-            "- STRUCTURE: Preserve the original Markdown structure and layout of the template exactly. Do NOT merge, split, or delete any job positions or chronological sections.\n"
-            "- NO DELETIONS: Do NOT delete any professional achievements, bullet points, or engineering metrics. Keep the rich technical context of the resume intact.\n"
-            "- TRUTHFULNESS & CHRONOLOGY: Be completely truthful. Never hallucinate or inject modern technologies into older job positions if they did not exist or were not used there (e.g., never add React.js, .NET 8, or AWS Lambda to jobs from 2014 unless it is already written in the base template).\n"
-            "- HOW TO TAILOR: Adapt by shifting emphasis, NOT by lying. Rewrite or rephrase existing bullet points to highlight transferable skills that align with the vacancy (e.g., if the vacancy requires OpenSearch and the user has ElasticSearch, emphasize the search architecture skills; if the vacancy requires AWS Lambda, highlight event-driven architecture and scalable microservices).\n"
-            "- OUTPUT: Return ONLY the tailored resume in Markdown. No introduction, no commentary, no markdown code block backticks. Start directly with the resume text."
+            "You are a strict, fact-based technical resume adaptation engine. Your task is to update "
+            "the phrasing of a resume to align with a vacancy without altering the document structure."
         )
+
         user_prompt = (
             f"## Job Vacancy\n\n{vacancy_text}\n\n"
             f"## Resume Template\n\n{template_md}\n\n"
-            "Tailor the resume template to best match the job vacancy above."
-        )	
-        
+            f"### MANDATORY INSTRUCTIONS FOR THE OUTPUT:\n"
+            f"1. You are strictly FORBIDDEN from deleting any bullet points or achievements. If a job position has 6 bullets in the template, it MUST have exactly 6 bullets in your response.\n"
+            f"2. Do NOT drop non-.NET experience (e.g., Python, Go). Keep it completely intact to preserve the candidate's seniority.\n"
+            f"3. Tailor ONLY by rewriting or rephrasing existing sentences to highlight transferable skills (e.g., map ElasticSearch to OpenSearch context, or emphasize general microservices scale for AWS Lambda).\n"
+            f"4. Maintain strict chronological truth. Never add React or modern tech to jobs from 2014.\n"
+            f"5. Output ONLY the raw Markdown text of the resume. No chat, no commentary, no backticks. Start directly with the text."
+            f"CRITICAL: Keep your internal thinking (<think> process) short, concise, and focused strictly on structural validation. Do not over-analyze."
+        )
+
         response = self.cloud_client.chat.completions.create(
             model=Config.CLOUD_TEXT_MODEL,
             timeout=Config.CLOUD_LLM_TIMEOUT,
+            temperature=0.0,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            extra_body={
+                "options": {
+                    "num_predict": 8192,  # Максимальное количество токенов на вывод (включая <think>)
+                    "num_ctx": 16384      # Общее окно контекста (чтобы влез шаблон + вакансия)
+                }
+            }            
         )
         return response.choices[0].message.content or ""
