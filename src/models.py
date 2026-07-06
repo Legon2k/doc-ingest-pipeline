@@ -115,10 +115,11 @@ class LLMClient:
             f"## Job Vacancy\n\n{vacancy_text}\n\n"
             f"## Resume Template\n\n{template_md}\n\n"
             "Tailor the resume template to best match the job vacancy above."
-        )
-
+        )	
+        
         response = self.cloud_client.chat.completions.create(
             model=Config.CLOUD_TEXT_MODEL,
+            timeout=Config.CLOUD_LLM_TIMEOUT,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

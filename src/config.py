@@ -36,6 +36,8 @@ class Config:
     CLOUD_LLM_URL: str = os.getenv("CLOUD_LLM_URL", "http://localhost:11434/v1")
     CLOUD_LLM_KEY: str = os.getenv("CLOUD_LLM_KEY", "ollama")
     CLOUD_TEXT_MODEL: str = os.getenv("CLOUD_TEXT_MODEL", "llama3.1:latest")
+    # Timeout for cloud reasoning requests (seconds). Increase for large resumes.
+    CLOUD_LLM_TIMEOUT: float = float(os.getenv("CLOUD_LLM_TIMEOUT", "1800"))
 
     # ------------------------------------------------------------------
     # Storage paths
