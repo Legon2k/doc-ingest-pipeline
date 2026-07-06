@@ -58,8 +58,14 @@ class ResumeTailorerEngine:
             )
             return
 
+        print(
+            f"[Engine] VisionModel={Config.VISION_MODEL}, "
+            f"TextModel={Config.CLOUD_TEXT_MODEL}"
+        )
+
         processed = 0
         skipped = 0
+        first_category = True
         start_time = time.perf_counter()
 
         for category_dir in sorted(_VACANCIES_DIR.iterdir()):
@@ -78,7 +84,9 @@ class ResumeTailorerEngine:
                 continue
 
             template_md = template_path.read_text(encoding="utf-8")
-            print(f"\n[Engine] Category: {category}  |  Template: {template_path.name}")
+            separator = "" if first_category else "\n"
+            print(f"{separator}[Engine] Category: {category}  |  Template: {template_path.name}")
+            first_category = False
 
             for vacancy_file in sorted(category_dir.iterdir()):
                 if vacancy_file.suffix.lower() not in _SUPPORTED_EXTENSIONS:

@@ -127,9 +127,12 @@ class LLMClient:
         user_prompt = (
             f"Extract ONLY the core technical profile from this vacancy.\n\n"
             f"## Raw Vacancy:\n{raw_vacancy_text}\n\n"
-            "Output a brief Markdown list with: Target Role, Core Tech Stack (languages/frameworks), "
-            "Cloud/Infrastructure, and Databases/Brokers. "
-            "Be extremely dense and concise. No chat, no commentary."
+            f"Output a brief Markdown list with: Target Role, Core Tech Stack (languages/frameworks), "
+            f"Cloud/Infrastructure, and Databases/Brokers.\n"
+            f"CRITICAL RULES FOR EXTRACTION:\n"
+            f"- Include ONLY technologies that the candidate WILL USE. Ignore legacy tech mentioned as 'migration from' or forbidden tools.\n"
+            f"- Do not include soft skills, company benefits, or methodologies (Agile/Scrum).\n"
+            f"Be extremely dense and concise. No chat, no commentary."
         )
 
         response = self.cloud_client.chat.completions.create(
@@ -140,9 +143,16 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            # extra_body={
+            #     "options": {
+            #         "num_predict": 512,   # Жесткий потолок на вывод (включая <think>). Выжимка гарантированно влезет.
+            #         "num_ctx": 8192       # Окно инпута. Хватит, чтобы переварить даже самую длинную вакансию.
+            #     }
+            # }
         )
 
         raw = response.choices[0].message.content or ""
+
         return _clean_llm_output(raw)
 
     # ------------------------------------------------------------------
@@ -175,8 +185,6 @@ class LLMClient:
             f"5. Output ONLY the raw Markdown text of the resume. No chat, no commentary, no backticks. Start directly with the text."
             f"CRITICAL: Keep your internal thinking (<think> process) short, concise, and focused strictly on structural validation. Do not over-analyze."
         )
-
-        #f"CRITICAL: Keep your internal thinking (<think> process) extremely short. Do not rewrite the entire resume inside the think tag. Just verify constraints and output the Markdown directly."
 
         response = self.cloud_client.chat.completions.create(
             model=Config.CLOUD_TEXT_MODEL,
