@@ -59,7 +59,8 @@ class ResumeTailorerEngine:
             return
 
         print(
-            f"[Engine] VisionModel={Config.VISION_MODEL}, "
+            f"[Engine] VisionModel={Config.VISION_MODEL} "
+            f"(ChatMode={'true' if Config.LOCAL_LLM_CHAT_MODE else 'false'}), "
             f"TextModel={Config.CLOUD_TEXT_MODEL}"
         )
 

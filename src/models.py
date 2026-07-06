@@ -10,7 +10,9 @@ client instances:
 """
 
 import base64
+import json
 import re
+import urllib.request
 from pathlib import Path
 
 from openai import OpenAI
@@ -57,50 +59,96 @@ class LLMClient:
     def extract_text_from_screenshot(self, image_path: Path) -> str:
         """Send an image to the local vision model and return extracted text as Markdown.
 
+        Routing is controlled by Config.LOCAL_LLM_CHAT_MODE:
+            False (default) — OpenAI-compatible /v1/chat/completions.
+                              num_ctx is passed via extra_body options.
+            True            — Ollama native /api/chat via urllib.request.
+                              Use this when the model ignores num_ctx on the
+                              OpenAI-compatible endpoint (e.g. GLM-OCR).
+
         Args:
             image_path: Absolute or relative path to the image file (.png / .jpg).
 
         Returns:
             Extracted text content formatted as Markdown.
         """
-        raw_bytes = image_path.read_bytes()
-        encoded = base64.b64encode(raw_bytes).decode("utf-8")
+        encoded = base64.b64encode(image_path.read_bytes()).decode("utf-8")
 
-        suffix = image_path.suffix.lower().lstrip(".")
-        mime_type = "image/png" if suffix == "png" else "image/jpeg"
+        prompt = (
+            "Act as a dumb, precise OCR scanner. Your only task is to read the image from top to bottom "
+            "and transcribe EVERY single visible word, line by line. "
+            "CRITICAL RULES:\n"
+            "1. Start from the very first pixel at the top (extract the main job title, company name, "
+            "location, and citizenship requirements).\n"
+            "2. Do NOT summarize, do NOT rephrase, and do NOT skip any sections.\n"
+            "3. Keep lists and technologies exactly where they are physically located. "
+            "Do NOT merge 'Nice to have' into 'Responsibilities'.\n"
+            "4. Output ONLY the raw transcribed text. No introductions, no Markdown improvements, "
+            "no explanations."
+        )
 
-        #"Act as a precise OCR engine. Read the text from this image and list the technologies exactly as they appear. Do not extrapolate, do not add missing punctuation, and do not invent neighboring context. Output only the found text."
+        if Config.LOCAL_LLM_CHAT_MODE:
+            return self._vision_ollama_native(encoded, prompt)
+        return self._vision_openai_compat(encoded, prompt)
+
+    def _vision_openai_compat(self, encoded: str, prompt: str) -> str:
+        """Vision call via OpenAI-compatible /v1/chat/completions endpoint.
+
+        num_ctx is forwarded through extra_body options. Works for most models;
+        set LOCAL_LLM_CHAT_MODE=true if the model ignores it.
+        """
+        suffix_hint = "image/png"  # Ollama accepts both; png is a safe default
         response = self.local_client.chat.completions.create(
             model=Config.VISION_MODEL,
             temperature=0.0,
             timeout=Config.LOCAL_LLM_TIMEOUT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": (
-                                "Act as a dumb, precise OCR scanner. Your only task is to read the image from top to bottom "
-                                "and transcribe EVERY single visible word, line by line. "
-                                "CRITICAL RULES:\n"
-                                "1. Start from the very first pixel at the top (extract the main job title, company name, location, and citizenship requirements).\n"
-                                "2. Do NOT summarize, do NOT rephrase, and do NOT skip any sections.\n"
-                                "3. Keep lists and technologies exactly where they are physically located. Do NOT merge 'Nice to have' into 'Responsibilities'.\n"
-                                "4. Output ONLY the raw transcribed text. No introductions, no Markdown improvements, no explanations."
-                            ),
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{encoded}"
-                            },
-                        },
-                    ],
-                }
-            ],
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{suffix_hint};base64,{encoded}"},
+                    },
+                ],
+            }],
+            extra_body={"options": {"num_ctx": Config.LOCAL_LLM_NUM_CTX}},
         )
         return response.choices[0].message.content or ""
+
+    def _vision_ollama_native(self, encoded: str, prompt: str) -> str:
+        """Vision call via Ollama's native /api/chat endpoint using urllib.request.
+
+        Derives the native base URL by stripping the /v1 suffix from LOCAL_LLM_URL
+        (e.g. http://host:11434/v1 → http://host:11434/api/chat).
+        num_ctx is passed directly in options and is always honoured.
+        """
+        base_url = Config.LOCAL_LLM_URL.rstrip("/")
+        if base_url.endswith("/v1"):
+            base_url = base_url[:-3]
+        native_url = f"{base_url}/api/chat"
+
+        payload = json.dumps({
+            "model": Config.VISION_MODEL,
+            "stream": False,
+            "options": {"num_ctx": Config.LOCAL_LLM_NUM_CTX},
+            "messages": [{
+                "role": "user",
+                "content": prompt,
+                "images": [encoded],  # Ollama native image format
+            }],
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            native_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=int(Config.LOCAL_LLM_TIMEOUT)) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        return data.get("message", {}).get("content", "")
 
     # ------------------------------------------------------------------
     # Cloud pre-processing: raw vacancy → dense tech profile

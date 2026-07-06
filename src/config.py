@@ -26,6 +26,14 @@ class Config:
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
     # Timeout for local vision OCR requests (seconds). Increase for large images.
     LOCAL_LLM_TIMEOUT: float = float(os.getenv("LOCAL_LLM_TIMEOUT", "180"))
+    # Ollama context window size for vision requests. Must be large enough
+    # to fit the image tokens + prompt. Increase if you get exceed_context_size_error.
+    LOCAL_LLM_NUM_CTX: int = int(os.getenv("LOCAL_LLM_NUM_CTX", "8192"))
+    # Vision API mode:
+    #   false (default) — OpenAI-compatible /v1/chat/completions
+    #   true            — Ollama native /api/chat (reliably applies num_ctx)
+    # Accepts: true/1/yes  or  false/0/no  (case-insensitive)
+    LOCAL_LLM_CHAT_MODE: bool = os.getenv("LOCAL_LLM_CHAT_MODE", "false").strip().lower() in {"true", "1", "yes"}
 
     # ------------------------------------------------------------------
     # Cloud / reasoning model
