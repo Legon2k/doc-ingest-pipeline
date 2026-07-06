@@ -143,12 +143,12 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            # extra_body={
-            #     "options": {
-            #         "num_predict": 512,   # Жесткий потолок на вывод (включая <think>). Выжимка гарантированно влезет.
-            #         "num_ctx": 8192       # Окно инпута. Хватит, чтобы переварить даже самую длинную вакансию.
-            #     }
-            # }
+            extra_body={
+                "options": {
+                     "num_predict": 512,   # Жесткий потолок на вывод (включая <think>). Выжимка гарантированно влезет.
+                     "num_ctx": 8192       # Окно инпута. Хватит, чтобы переварить даже самую длинную вакансию.
+                 }
+            }
         )
 
         raw = response.choices[0].message.content or ""
