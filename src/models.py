@@ -193,8 +193,8 @@ class LLMClient:
             ],
             extra_body={
                 "options": {
-                     "num_predict": 512,   # Жесткий потолок на вывод (включая <think>). Выжимка гарантированно влезет.
-                     "num_ctx": 8192       # Окно инпута. Хватит, чтобы переварить даже самую длинную вакансию.
+                     "num_predict": 1024,
+                     "num_ctx": 8192
                  }
             }
         )
@@ -244,20 +244,17 @@ class LLMClient:
             ],
             extra_body={
                 "options": {
-                    "num_predict": 16384,  # Максимальное количество токенов на вывод (включая <think>)
-                    "num_ctx": 32768      # Общее окно контекста (чтобы влез шаблон + вакансия)
+                    "num_predict": 16384,
+                    "num_ctx": 32768
                 }
             }            
         )
 
         message = response.choices[0].message
 
-        # 1. Проверяем стандартный content
         content = message.content or ""
 
-        # 2. Если там пусто, вытаскиваем текст из полей рассуждений (характерно для R1/Gemma)
         if not content.strip():
-            # Проверяем официальное поле OpenAI для рассуждений или кастомное от Ollama
             content = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None) or ""
 
         return _clean_llm_output(content)
