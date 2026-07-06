@@ -23,6 +23,7 @@ class LocalArchiveExporter:
         file_name_stem: str,
         source_file: Path,
         vacancy_text: str,
+        vacancy_profile: str,
         tailored_md: str,
     ) -> None:
         """Copy all artifacts to a dated archive folder and create an Obsidian note.
@@ -32,17 +33,19 @@ class LocalArchiveExporter:
 
         Artifacts written:
             - Original source file (screenshot or text)
-            - <stem>_vacancy.md   — extracted vacancy text
-            - <stem>_resume.md    — tailored resume in Markdown
-            - <stem>_resume.pdf   — mock PDF placeholder
+            - <stem>_vacancy.md    — raw extracted vacancy text
+            - <stem>_extraction.md — compressed tech profile (fluff stripped)
+            - <stem>_resume.md     — tailored resume in Markdown
+            - <stem>_resume.pdf    — mock PDF placeholder
 
         Args:
-            category:       Vacancy category / template name (e.g. "architect").
-            company:        Company name parsed from the filename.
-            file_name_stem: Filename without extension (e.g. "Acme_Solution_Architect").
-            source_file:    Path to the original vacancy file.
-            vacancy_text:   Extracted vacancy content as Markdown.
-            tailored_md:    Tailored resume content as Markdown.
+            category:        Vacancy category / template name (e.g. "architect").
+            company:         Company name parsed from the filename.
+            file_name_stem:  Filename without extension (e.g. "Acme_Solution_Architect").
+            source_file:     Path to the original vacancy file.
+            vacancy_text:    Raw extracted vacancy content as Markdown.
+            vacancy_profile: Compressed tech profile (output of extract_vacancy_profile).
+            tailored_md:     Tailored resume content as Markdown.
         """
         today = date.today().strftime("%Y-%m-%d")
         folder_name = f"{today}_{company}_{category}"
@@ -52,17 +55,22 @@ class LocalArchiveExporter:
         # 1. Copy the original source file (screenshot or text)
         shutil.copy2(source_file, archive_dir / source_file.name)
 
-        # 2. Save extracted vacancy text
+        # 2. Save raw extracted vacancy text
         (archive_dir / f"{file_name_stem}_vacancy.md").write_text(
             vacancy_text, encoding="utf-8"
         )
 
-        # 3. Save the tailored resume
+        # 3. Save compressed tech profile (fluff stripped)
+        (archive_dir / f"{file_name_stem}_vacancy_extraction.md").write_text(
+            vacancy_profile, encoding="utf-8"
+        )
+
+        # 4. Save the tailored resume
         (archive_dir / f"{file_name_stem}_resume.md").write_text(
             tailored_md, encoding="utf-8"
         )
 
-        # 4. Mock PDF — placeholder until a real PDF renderer (e.g. weasyprint) is wired in
+        # 5. Mock PDF — placeholder until a real PDF renderer (e.g. weasyprint) is wired in
         _write_mock_pdf(archive_dir / f"{file_name_stem}_resume.pdf")
 
         print(f"[Exporter] Artifacts archived → {archive_dir}")

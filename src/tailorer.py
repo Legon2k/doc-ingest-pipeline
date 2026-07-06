@@ -123,25 +123,35 @@ class ResumeTailorerEngine:
         company = parts[0] if parts else "Unknown"
 
         try:
-            # Stage 1 — extract vacancy text
+            # Stage 1 — extract raw vacancy text (OCR or direct read)
             t0 = time.perf_counter()
-            vacancy_text = self._parser.to_text(vacancy_file)
+            raw_vacancy_text = self._parser.to_text(vacancy_file)
             t1 = time.perf_counter()
-            print(f"[Engine]     Vacancy extracted ({len(vacancy_text):,} chars) in {t1 - t0:.2f}s")
+            print(f"[Engine]     Vacancy extracted  ({len(raw_vacancy_text):,} chars) in {t1 - t0:.2f}s")
 
-            # Stage 2 — tailor the resume
+            # Stage 2 — compress: strip fluff, keep only dense tech profile
             t0 = time.perf_counter()
-            tailored_md = self._llm.tailor_resume_via_cloud(vacancy_text, template_md)
+            vacancy_profile = self._llm.extract_vacancy_profile(raw_vacancy_text)
             t1 = time.perf_counter()
-            print(f"[Engine]     Resume tailored  ({len(tailored_md):,} chars) in {t1 - t0:.2f}s")
+            print(f"[Engine]     Profile compressed ({len(vacancy_profile):,} chars) in {t1 - t0:.2f}s")
 
-            # Stage 3 — export all artifacts
+            # Persist the extraction artifact alongside the source file
+            # (also copied to archive by the exporter)
+
+            # Stage 3 — tailor the resume against the compressed profile
+            t0 = time.perf_counter()
+            tailored_md = self._llm.tailor_resume_via_cloud(vacancy_profile, template_md)
+            t1 = time.perf_counter()
+            print(f"[Engine]     Resume tailored   ({len(tailored_md):,} chars) in {t1 - t0:.2f}s")
+
+            # Stage 4 — export all artifacts
             self._exporter.archive_all_artifacts(
                 category=category,
                 company=company,
                 file_name_stem=vacancy_file.stem,
                 source_file=vacancy_file,
-                vacancy_text=vacancy_text,
+                vacancy_text=raw_vacancy_text,
+                vacancy_profile=vacancy_profile,
                 tailored_md=tailored_md,
             )
 

@@ -10,11 +10,26 @@ client instances:
 """
 
 import base64
+import re
 from pathlib import Path
 
 from openai import OpenAI
 
 from src.config import Config
+
+
+def _clean_llm_output(text: str) -> str:
+    """Remove reasoning artifacts and markdown fences from LLM output.
+
+    Strips DeepSeek / Gemma <think>…</think> blocks and ```markdown fences
+    so only clean prose / Markdown is returned to the caller.
+    """
+    # Drop everything up to and including the closing </think> tag
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    # Remove opening ```markdown or plain ``` fences
+    text = re.sub(r"^```[a-zA-Z]*\n?", "", text.strip(), flags=re.MULTILINE)
+    text = re.sub(r"```$", "", text.strip(), flags=re.MULTILINE)
+    return text.strip()
 
 
 class LLMClient:
@@ -88,6 +103,49 @@ class LLMClient:
         return response.choices[0].message.content or ""
 
     # ------------------------------------------------------------------
+    # Cloud pre-processing: raw vacancy → dense tech profile
+    # ------------------------------------------------------------------
+
+    def extract_vacancy_profile(self, raw_vacancy_text: str) -> str:
+        """Strip corporate fluff from a raw vacancy and return a dense tech profile.
+
+        Removes benefits, soft skills, company descriptions, and filler text,
+        leaving only engineering facts relevant to resume tailoring.
+        Also cleans reasoning artifacts emitted by DeepSeek/Gemma models.
+
+        Args:
+            raw_vacancy_text: Full raw text of the job vacancy.
+
+        Returns:
+            Compressed Markdown tech profile.
+        """
+        system_prompt = (
+            "You are an advanced technical analyst. Your job is to strip all corporate fluff, "
+            "benefits, soft skills, and company descriptions from a job description, "
+            "leaving only dense engineering facts."
+        )
+        user_prompt = (
+            f"Extract ONLY the core technical profile from this vacancy.\n\n"
+            f"## Raw Vacancy:\n{raw_vacancy_text}\n\n"
+            "Output a brief Markdown list with: Target Role, Core Tech Stack (languages/frameworks), "
+            "Cloud/Infrastructure, and Databases/Brokers. "
+            "Be extremely dense and concise. No chat, no commentary."
+        )
+
+        response = self.cloud_client.chat.completions.create(
+            model=Config.CLOUD_TEXT_MODEL,
+            timeout=Config.CLOUD_LLM_TIMEOUT,
+            temperature=0.0,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
+        raw = response.choices[0].message.content or ""
+        return _clean_llm_output(raw)
+
+    # ------------------------------------------------------------------
     # Cloud reasoning: vacancy + template → tailored resume
     # ------------------------------------------------------------------
 
@@ -146,4 +204,4 @@ class LLMClient:
             # Проверяем официальное поле OpenAI для рассуждений или кастомное от Ollama
             content = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None) or ""
 
-        return content
+        return _clean_llm_output(content)
