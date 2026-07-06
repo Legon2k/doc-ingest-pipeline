@@ -118,6 +118,8 @@ class LLMClient:
             f"CRITICAL: Keep your internal thinking (<think> process) short, concise, and focused strictly on structural validation. Do not over-analyze."
         )
 
+        #f"CRITICAL: Keep your internal thinking (<think> process) extremely short. Do not rewrite the entire resume inside the think tag. Just verify constraints and output the Markdown directly."
+
         response = self.cloud_client.chat.completions.create(
             model=Config.CLOUD_TEXT_MODEL,
             timeout=Config.CLOUD_LLM_TIMEOUT,
@@ -128,9 +130,20 @@ class LLMClient:
             ],
             extra_body={
                 "options": {
-                    "num_predict": 8192,  # Максимальное количество токенов на вывод (включая <think>)
-                    "num_ctx": 16384      # Общее окно контекста (чтобы влез шаблон + вакансия)
+                    "num_predict": 16384,  # Максимальное количество токенов на вывод (включая <think>)
+                    "num_ctx": 32768      # Общее окно контекста (чтобы влез шаблон + вакансия)
                 }
             }            
         )
-        return response.choices[0].message.content or ""
+
+        message = response.choices[0].message
+
+        # 1. Проверяем стандартный content
+        content = message.content or ""
+
+        # 2. Если там пусто, вытаскиваем текст из полей рассуждений (характерно для R1/Gemma)
+        if not content.strip():
+            # Проверяем официальное поле OpenAI для рассуждений или кастомное от Ollama
+            content = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None) or ""
+
+        return content
