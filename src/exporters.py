@@ -18,6 +18,7 @@ from src.config import Config
 # Inline CSS applied to every generated PDF resume.
 # xhtml2pdf requires @page for margin control and built-in ReportLab fonts
 # (Helvetica, Times-Roman) to avoid font resolution issues on Windows.
+# Update: direct targeting of generated HTML list tags (ul, li).
 _RESUME_CSS = """
 @page {
     size: letter;
@@ -25,12 +26,12 @@ _RESUME_CSS = """
 }
 body {
     font-family: Helvetica, Arial, sans-serif;
-    line-height: 1.4;
+    line-height: 1.5;
     font-size: 10pt;
     color: #333333;
 }
 h1 {
-    font-size: 20pt;
+    font-size: 22pt;
     margin-bottom: 2px;
     text-transform: uppercase;
     color: #111111;
@@ -44,29 +45,29 @@ h2 {
 }
 h3 {
     font-size: 11pt;
-    margin-top: 12px;
+    margin-top: 10px;
     margin-bottom: 2px;
     color: #111111;
 }
-p { 
+p {
     margin-top: 0px;
     margin-bottom: 4px;
     word-wrap: break-word;
 }
-ul { 
+ul {
     margin-top: 2px;
-    margin-bottom: 6px; 
-    margin-left: 20pt; 
-    padding-left: 0px;
+    margin-bottom: 6px;
+    padding-left: 20pt; /* Indent the entire list */
 }
-li { 
+li {
     margin-bottom: 3px;
-    list-style-type: disc;
+    list-style-type: disc; /* Use a bullet point */
+    text-align: left;
 }
-hr { 
-    border: 0; 
-    border-top: 1px solid #cccccc; 
-    margin: 10px 0; 
+hr {
+    border: 0;
+    border-top: 1px solid #cccccc;
+    margin: 10px 0;
 }
 """
 
@@ -164,7 +165,7 @@ class LocalArchiveExporter:
         notes_dir.mkdir(parents=True, exist_ok=True)
 
         # Derive a human-readable role from the filename stem.
-        # Convention: "<Company>_<Role_Words>" → join remaining parts with spaces.
+        # Convention: "<Company>_<Role_Words>" → join remaining parts with spaces.        
         role_parts = file_name_stem.split("_")[1:]
         role = " ".join(role_parts) if role_parts else file_name_stem
 
@@ -195,10 +196,18 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
         md_text:     Resume content in Markdown format.
         output_path: Destination path for the generated .pdf file.
     """
-    
-    # Используем базовые расширения, чтобы списки гарантированно парсились в корректные <ul>/<li>
+    # Шаг 0: Safe cleaning incoming markdown text from Rich Text artifacts
+    # Replace non-breaking spaces (U+00A0) often introduced by copying from
+    # Google Docs/Word/HTML with standard spaces, which xhtml2pdf requires
+    # for consistent list processing [cite: integration plan].
+    md_text = md_text.replace('\xa0', ' ') # Replace U+00A0 with standard space
+
+    # Шаг 1: Базовая конвертация MD в HTML
+    # This extension converts Markdown syntax into HTML tags like <ul> and <li>.
     html_body = md_lib.markdown(md_text, extensions=["extra", "smarty"])
 
+    # Шаг 2: Form the full HTML with CSS.
+    # The CSS is applied to generated HTML tags.
     styled_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -212,6 +221,8 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
 </body>
 </html>"""
 
+    # Шаг 3: Generate the PDF document using xhtml2pdf (pisa).
+    # Reverted from DEBUG mode to functional mode [cite: integrate logic].
     with output_path.open("wb") as pdf_file:
         pisa_status = pisa.CreatePDF(
             styled_html,
