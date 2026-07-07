@@ -21,7 +21,7 @@ from src.config import Config
 _RESUME_CSS = """
 @page {
     size: letter;
-    margin: 20mm;
+    margin: 15mm 20mm 15mm 20mm;
 }
 body {
     font-family: Helvetica, Arial, sans-serif;
@@ -34,7 +34,6 @@ h1 {
     margin-bottom: 2px;
     text-transform: uppercase;
     color: #111111;
-    text-align: left;
 }
 h2 {
     font-size: 13pt;
@@ -45,13 +44,30 @@ h2 {
 }
 h3 {
     font-size: 11pt;
-    margin-top: 10px;
-    margin-bottom: 3px;
-    color: #333333;
+    margin-top: 12px;
+    margin-bottom: 2px;
+    color: #111111;
 }
-p { margin-bottom: 6px; }
-ul { margin-bottom: 6px; margin-left: 0px; padding-left: 0px; }
-li { margin-bottom: 3px; }
+p { 
+    margin-top: 0px;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+}
+ul { 
+    margin-top: 2px;
+    margin-bottom: 6px; 
+    margin-left: 20pt; 
+    padding-left: 0px;
+}
+li { 
+    margin-bottom: 3px;
+    list-style-type: disc;
+}
+hr { 
+    border: 0; 
+    border-top: 1px solid #cccccc; 
+    margin: 10px 0; 
+}
 """
 
 
@@ -117,7 +133,7 @@ class LocalArchiveExporter:
 
         print(f"[Exporter] Artifacts archived → {archive_dir}")
 
-        # 5. Create an Obsidian note
+        # 6. Create an Obsidian note
         self._create_obsidian_note(
             category=category,
             company=company,
@@ -126,10 +142,6 @@ class LocalArchiveExporter:
             tailored_md=tailored_md,
             today=today,
         )
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     def _create_obsidian_note(
         self,
@@ -173,10 +185,6 @@ class LocalArchiveExporter:
         print(f"[Exporter] Obsidian note created → {note_path}")
 
 
-# ------------------------------------------------------------------
-# Module-level helpers
-# ------------------------------------------------------------------
-
 def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
     """Convert a Markdown string to a styled PDF file using xhtml2pdf.
 
@@ -187,6 +195,8 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
         md_text:     Resume content in Markdown format.
         output_path: Destination path for the generated .pdf file.
     """
+    
+    # Используем базовые расширения, чтобы списки гарантированно парсились в корректные <ul>/<li>
     html_body = md_lib.markdown(md_text, extensions=["extra", "smarty"])
 
     styled_html = f"""<!DOCTYPE html>
