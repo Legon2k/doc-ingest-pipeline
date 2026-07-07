@@ -151,15 +151,15 @@ class LLMClient:
         return data.get("message", {}).get("content", "")
 
     # ------------------------------------------------------------------
-    # Cloud pre-processing: raw vacancy → dense tech profile
+    # Local pre-processing: raw vacancy → dense tech profile
     # ------------------------------------------------------------------
 
     def extract_vacancy_profile(self, raw_vacancy_text: str) -> str:
         """Strip corporate fluff from a raw vacancy and return a dense tech profile.
 
-        Removes benefits, soft skills, company descriptions, and filler text,
-        leaving only engineering facts relevant to resume tailoring.
-        Also cleans reasoning artifacts emitted by DeepSeek/Gemma models.
+        Runs on the local Ollama instance (local_client / LOCAL_TEXT_MODEL).
+        System and user prompts are merged into a single "user" message because
+        some local Ollama models ignore the "system" role via the OpenAI SDK.
 
         Args:
             raw_vacancy_text: Full raw text of the job vacancy.
@@ -167,41 +167,32 @@ class LLMClient:
         Returns:
             Compressed Markdown tech profile.
         """
-        system_prompt = (
+        combined_prompt = (
             "You are an advanced technical analyst. Your job is to strip all corporate fluff, "
             "benefits, soft skills, and company descriptions from a job description, "
-            "leaving only dense engineering facts."
-        )
-        user_prompt = (
+            "leaving only dense engineering facts.\n\n"
             f"Extract ONLY the core technical profile from this vacancy.\n\n"
             f"## Raw Vacancy:\n{raw_vacancy_text}\n\n"
-            f"Output a brief Markdown list with: Target Role, Core Tech Stack (languages/frameworks), "
-            f"Cloud/Infrastructure, and Databases/Brokers.\n"
-            f"CRITICAL RULES FOR EXTRACTION:\n"
-            f"- Include ONLY technologies that the candidate WILL USE. Ignore legacy tech mentioned as 'migration from' or forbidden tools.\n"
-            f"- Do not include soft skills, company benefits, or methodologies (Agile/Scrum).\n"
-            f"Be extremely dense and concise. No chat, no commentary."
+            "Output a brief Markdown list with: Target Role, Core Tech Stack (languages/frameworks), "
+            "Cloud/Infrastructure, and Databases/Brokers.\n"
+            "CRITICAL RULES FOR EXTRACTION:\n"
+            "- Include ONLY technologies the candidate WILL USE. "
+            "Ignore legacy tech mentioned as 'migration from' or forbidden tools.\n"
+            "- Do not include soft skills, company benefits, or methodologies (Agile/Scrum).\n"
+            "Be extremely dense and concise. No chat, no commentary."
         )
 
-        response = self.cloud_client.chat.completions.create(
-            model=Config.CLOUD_TEXT_MODEL,
-            timeout=Config.CLOUD_LLM_TIMEOUT,
+        response = self.local_client.chat.completions.create(
+            model=Config.LOCAL_TEXT_MODEL,
+            timeout=Config.LOCAL_LLM_TIMEOUT,
             temperature=0.0,
             max_tokens=2048,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": combined_prompt},
             ],
-            # extra_body={
-            #     "options": {
-            #          "num_predict": 1024,
-            #          "num_ctx": 8192
-            #      }
-            # }
         )
 
         raw = response.choices[0].message.content or ""
-
         return _clean_llm_output(raw)
 
     # ------------------------------------------------------------------

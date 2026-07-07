@@ -61,7 +61,8 @@ class ResumeTailorerEngine:
         print(
             f"[Engine] VisionModel={Config.VISION_MODEL} "
             f"(ChatMode={'true' if Config.LOCAL_LLM_CHAT_MODE else 'false'}), "
-            f"TextModel={Config.CLOUD_TEXT_MODEL}"
+            f"TextModel={Config.LOCAL_TEXT_MODEL}, "
+            f"CloudTextModel={Config.CLOUD_TEXT_MODEL}"
         )
 
         processed = 0

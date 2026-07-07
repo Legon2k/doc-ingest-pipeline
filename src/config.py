@@ -29,6 +29,8 @@ class Config:
     # Ollama context window size for vision requests. Must be large enough
     # to fit the image tokens + prompt. Increase if you get exceed_context_size_error.
     LOCAL_LLM_NUM_CTX: int = int(os.getenv("LOCAL_LLM_NUM_CTX", "8192"))
+    # Text model running on the local Ollama instance (used for vacancy compression).
+    LOCAL_TEXT_MODEL: str = os.getenv("LOCAL_TEXT_MODEL", "gemma4:e4b")
     # Vision API mode:
     #   false (default) — OpenAI-compatible /v1/chat/completions
     #   true            — Ollama native /api/chat (reliably applies num_ctx)
