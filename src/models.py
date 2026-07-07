@@ -187,16 +187,17 @@ class LLMClient:
             model=Config.CLOUD_TEXT_MODEL,
             timeout=Config.CLOUD_LLM_TIMEOUT,
             temperature=0.0,
+            max_tokens=2048,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            extra_body={
-                "options": {
-                     "num_predict": 1024,
-                     "num_ctx": 8192
-                 }
-            }
+            # extra_body={
+            #     "options": {
+            #          "num_predict": 1024,
+            #          "num_ctx": 8192
+            #      }
+            # }
         )
 
         raw = response.choices[0].message.content or ""
@@ -231,6 +232,8 @@ class LLMClient:
             f"3. Tailor ONLY by rewriting or rephrasing existing sentences to highlight transferable skills (e.g., map ElasticSearch to OpenSearch context, or emphasize general microservices scale for AWS Lambda).\n"
             f"4. Maintain strict chronological truth. Never add React or modern tech to jobs from 2014.\n"
             f"5. Output ONLY the raw Markdown text of the resume. No chat, no commentary, no backticks. Start directly with the text."
+            f"6. CRITICAL: You are strictly FORBIDDEN from inventing or adding new technologies, frameworks, or cloud providers that are not already present in the Resume Template. If the template uses Azure, do NOT change it to AWS. If the template does not have Entity Framework, do NOT add it.\n"
+            f"7. NEVER alter the candidate's core contact details, GitHub links, Upwork links, or certification names. Keep them identical to the template.\n"
             f"CRITICAL: Keep your internal thinking (<think> process) short, concise, and focused strictly on structural validation. Do not over-analyze."
         )
 
@@ -238,16 +241,17 @@ class LLMClient:
             model=Config.CLOUD_TEXT_MODEL,
             timeout=Config.CLOUD_LLM_TIMEOUT,
             temperature=0.0,
+            max_tokens=4096,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            extra_body={
-                "options": {
-                    "num_predict": 16384,
-                    "num_ctx": 32768
-                }
-            }            
+            # extra_body={
+            #     "options": {
+            #         "num_predict": 16384,
+            #         "num_ctx": 32768
+            #     }
+            # }            
         )
 
         message = response.choices[0].message
