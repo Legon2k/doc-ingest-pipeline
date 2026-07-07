@@ -16,36 +16,42 @@ from xhtml2pdf import pisa
 from src.config import Config
 
 # Inline CSS applied to every generated PDF resume.
+# xhtml2pdf requires @page for margin control and built-in ReportLab fonts
+# (Helvetica, Times-Roman) to avoid font resolution issues on Windows.
 _RESUME_CSS = """
-body {
-    font-family: Arial, sans-serif;
-    line-height: 1.4;
-    font-size: 11pt;
-    color: #333;
+@page {
+    size: letter;
     margin: 20mm;
 }
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.4;
+    font-size: 10pt;
+    color: #333333;
+}
 h1 {
-    font-size: 24pt;
-    margin-bottom: 5px;
+    font-size: 20pt;
+    margin-bottom: 2px;
     text-transform: uppercase;
-    color: #111;
+    color: #111111;
+    text-align: left;
 }
 h2 {
-    font-size: 14pt;
-    border-bottom: 1px solid #ccc;
-    margin-top: 20px;
-    padding-bottom: 3px;
-    color: #222;
+    font-size: 13pt;
+    border-bottom: 1px solid #cccccc;
+    margin-top: 15px;
+    padding-bottom: 2px;
+    color: #222222;
 }
 h3 {
-    font-size: 12pt;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    color: #333;
+    font-size: 11pt;
+    margin-top: 10px;
+    margin-bottom: 3px;
+    color: #333333;
 }
-p, ul { margin-bottom: 8px; }
-li { margin-bottom: 4px; }
-hr { border: 0; border-top: 1px solid #ccc; margin: 15px 0; }
+p { margin-bottom: 6px; }
+ul { margin-bottom: 6px; margin-left: 0px; padding-left: 0px; }
+li { margin-bottom: 3px; }
 """
 
 
@@ -182,12 +188,26 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
         output_path: Destination path for the generated .pdf file.
     """
     html_body = md_lib.markdown(md_text, extensions=["extra", "smarty"])
-    styled_html = (
-        "<html><head><meta charset='utf-8'><style>"
-        + _RESUME_CSS
-        + "</style></head><body>"
-        + html_body
-        + "</body></html>"
-    )
+
+    styled_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        {_RESUME_CSS}
+    </style>
+</head>
+<body>
+    {html_body}
+</body>
+</html>"""
+
     with output_path.open("wb") as pdf_file:
-        pisa.CreatePDF(styled_html, dest=pdf_file, encoding="utf-8")
+        pisa_status = pisa.CreatePDF(
+            styled_html,
+            dest=pdf_file,
+            encoding="utf-8",
+        )
+
+    if pisa_status.err:
+        print(f"[Exporter] ERROR compiling PDF for {output_path.name}")
