@@ -196,17 +196,17 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
         md_text:     Resume content in Markdown format.
         output_path: Destination path for the generated .pdf file.
     """
-    # Шаг 0: Safe cleaning incoming markdown text from Rich Text artifacts
+    # Step 0: Safe cleaning incoming markdown text from Rich Text artifacts
     # Replace non-breaking spaces (U+00A0) often introduced by copying from
     # Google Docs/Word/HTML with standard spaces, which xhtml2pdf requires
     # for consistent list processing [cite: integration plan].
-    md_text = md_text.replace('\xa0', ' ') # Replace U+00A0 with standard space
+    #md_text = md_text.replace('\xa0', ' ') # Replace U+00A0 with standard space
 
-    # Шаг 1: Базовая конвертация MD в HTML
+    # Step 1: Basic conversion of MD to HTML
     # This extension converts Markdown syntax into HTML tags like <ul> and <li>.
     html_body = md_lib.markdown(md_text, extensions=["extra", "smarty"])
 
-    # Шаг 2: Form the full HTML with CSS.
+    # Step 2: Form the full HTML with CSS.
     # The CSS is applied to generated HTML tags.
     styled_html = f"""<!DOCTYPE html>
 <html>
@@ -221,7 +221,7 @@ def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
 </body>
 </html>"""
 
-    # Шаг 3: Generate the PDF document using xhtml2pdf (pisa).
+    # Step 3: Generate the PDF document using xhtml2pdf (pisa).
     # Reverted from DEBUG mode to functional mode [cite: integrate logic].
     with output_path.open("wb") as pdf_file:
         pisa_status = pisa.CreatePDF(

@@ -20,20 +20,6 @@ from openai import OpenAI
 from src.config import Config
 
 
-def _clean_llm_output(text: str) -> str:
-    """Remove reasoning artifacts and markdown fences from LLM output.
-
-    Strips DeepSeek / Gemma <think>…</think> blocks and ```markdown fences
-    so only clean prose / Markdown is returned to the caller.
-    """
-    # Drop everything up to and including the closing </think> tag
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    # Remove opening ```markdown or plain ``` fences
-    text = re.sub(r"^```[a-zA-Z]*\n?", "", text.strip(), flags=re.MULTILINE)
-    text = re.sub(r"```$", "", text.strip(), flags=re.MULTILINE)
-    return text.strip()
-
-
 class LLMClient:
     """Manages communication with the local and cloud LLM endpoints."""
 
@@ -192,8 +178,9 @@ class LLMClient:
             ],
         )
 
-        raw = response.choices[0].message.content or ""
-        return _clean_llm_output(raw)
+        response_content = response.choices[0].message.content or ""
+
+        return response_content
 
     # ------------------------------------------------------------------
     # Cloud reasoning: vacancy + template → tailored resume
@@ -237,12 +224,6 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            # extra_body={
-            #     "options": {
-            #         "num_predict": 16384,
-            #         "num_ctx": 32768
-            #     }
-            # }            
         )
 
         message = response.choices[0].message
@@ -252,4 +233,4 @@ class LLMClient:
         if not content.strip():
             content = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None) or ""
 
-        return _clean_llm_output(content)
+        return content
