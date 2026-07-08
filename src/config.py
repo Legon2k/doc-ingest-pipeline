@@ -31,6 +31,10 @@ class Config:
     LOCAL_LLM_NUM_CTX: int = int(os.getenv("LOCAL_LLM_NUM_CTX", "8192"))
     # Text model running on the local Ollama instance (used for vacancy compression).
     LOCAL_TEXT_MODEL: str = os.getenv("LOCAL_TEXT_MODEL", "gemma4:e4b")
+    # When true, runs the vacancy compression stage before tailoring.
+    # When false, the raw OCR text is passed directly to the cloud tailoring model.
+    # Accepts: true/1/yes  or  false/0/no  (case-insensitive). Default: false.
+    USE_VACANCY_EXTRACTION: bool = os.getenv("USE_VACANCY_EXTRACTION", "false").strip().lower() in {"true", "1", "yes"}
     # Vision API mode:
     #   false (default) — OpenAI-compatible /v1/chat/completions
     #   true            — Ollama native /api/chat (reliably applies num_ctx)

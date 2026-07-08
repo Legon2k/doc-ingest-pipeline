@@ -61,9 +61,10 @@ class ResumeTailorerEngine:
         print(
             f"[Engine] VisionModel={Config.VISION_MODEL} "
             f"(ChatMode={'true' if Config.LOCAL_LLM_CHAT_MODE else 'false'}), "
-            f"TextModel={Config.LOCAL_TEXT_MODEL}, "
-            f"CloudTextModel={Config.CLOUD_TEXT_MODEL}"
+            f"TextModel={Config.LOCAL_TEXT_MODEL} "
+            f"(UseVacancyExtraction={'true' if Config.USE_VACANCY_EXTRACTION else 'false'})"
         )
+        print(f"[Engine] CloudTextModel={Config.CLOUD_TEXT_MODEL}")
 
         processed = 0
         skipped = 0
@@ -139,18 +140,21 @@ class ResumeTailorerEngine:
             t1 = time.perf_counter()
             print(f"[Engine]     Vacancy extracted  ({len(raw_vacancy_text):,} chars) in {t1 - t0:.2f}s")
 
-            # Stage 2 — compress: strip fluff, keep only dense tech profile
-            t0 = time.perf_counter()
-            vacancy_profile = self._llm.extract_vacancy_profile(raw_vacancy_text)
-            t1 = time.perf_counter()
-            print(f"[Engine]     Profile compressed ({len(vacancy_profile):,} chars) in {t1 - t0:.2f}s")
+            if Config.USE_VACANCY_EXTRACTION:
+                # Stage 2 (optional) — compress: strip fluff, keep only dense tech profile
+                t0 = time.perf_counter()
+                vacancy_profile = self._llm.extract_vacancy_profile(raw_vacancy_text)
+                t1 = time.perf_counter()
+                print(f"[Engine]     Profile compressed ({len(vacancy_profile):,} chars) in {t1 - t0:.2f}s")
+                tailoring_input = vacancy_profile
+            else:
+                # Skip compression — raw OCR text goes directly to the cloud tailoring model
+                vacancy_profile = ""
+                tailoring_input = raw_vacancy_text
 
-            # Persist the extraction artifact alongside the source file
-            # (also copied to archive by the exporter)
-
-            # Stage 3 — tailor the resume against the compressed profile
+            # Stage 3 — tailor the resume
             t0 = time.perf_counter()
-            tailored_md = self._llm.tailor_resume_via_cloud(vacancy_profile, template_md)
+            tailored_md = self._llm.tailor_resume_via_cloud(tailoring_input, template_md)
             t1 = time.perf_counter()
             print(f"[Engine]     Resume tailored   ({len(tailored_md):,} chars) in {t1 - t0:.2f}s")
 
