@@ -119,10 +119,11 @@ class LocalArchiveExporter:
             vacancy_text, encoding="utf-8"
         )
 
-        # 3. Save compressed tech profile (fluff stripped)
-        (archive_dir / f"{file_name_stem}_vacancy_extraction.md").write_text(
-            vacancy_profile, encoding="utf-8"
-        )
+        # 3. Save compressed tech profile (only when extraction stage was run)
+        if vacancy_profile:
+            (archive_dir / f"{file_name_stem}_vacancy_extraction.md").write_text(
+                vacancy_profile, encoding="utf-8"
+            )
 
         # 4. Save the tailored resume
         (archive_dir / f"{file_name_stem}_resume.md").write_text(

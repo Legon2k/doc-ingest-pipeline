@@ -46,7 +46,12 @@ class VacancyParser:
             return self._llm.extract_text_from_screenshot(file_path)
 
         if suffix in _TEXT_EXTENSIONS:
-            return file_path.read_text(encoding="utf-8")
+            try:
+                return file_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                # Fallback for files saved with Windows ANSI encoding (CP1252).
+                # Common when copying text from browsers or Word on Windows.
+                return file_path.read_text(encoding="cp1252")
 
         supported = sorted(_IMAGE_EXTENSIONS | _TEXT_EXTENSIONS)
         raise ValueError(
