@@ -131,7 +131,7 @@ class LocalArchiveExporter:
         )
 
         # 5. Compile and save the PDF resume
-        _compile_md_to_pdf(tailored_md, archive_dir / f"{file_name_stem}_resume.pdf")
+        compile_md_to_pdf(tailored_md, archive_dir / f"{file_name_stem}_resume.pdf")
 
         print(f"[Exporter] Artifacts archived → {archive_dir}")
 
@@ -187,7 +187,7 @@ class LocalArchiveExporter:
         print(f"[Exporter] Obsidian note created → {note_path}")
 
 
-def _compile_md_to_pdf(md_text: str, output_path: Path) -> None:
+def compile_md_to_pdf(md_text: str, output_path: Path) -> None:
     """Convert a Markdown string to a styled PDF file using xhtml2pdf.
 
     xhtml2pdf runs on pure Python (reportlab backend) with no native

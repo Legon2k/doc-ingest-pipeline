@@ -1,4 +1,4 @@
-.PHONY: run run-k8 run-lenovo run-lggram install lint
+.PHONY: run run-k8 run-lenovo run-lggram install lint convert-templates
 
 run:
 	uv run main.py
@@ -17,3 +17,6 @@ install:
 
 lint:
 	uv run ruff check src/ main.py
+
+convert-templates:
+	uv run main.py --convert-templates-to-pdf
