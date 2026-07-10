@@ -80,6 +80,24 @@ cp screenshot.png "vacancies/developer_dotnet/Acme_Senior Net Developer.png"
 make run
 ```
 
+## Utilities
+
+### `md2pdf.py` — Standalone Markdown → PDF Converter
+
+A one-off utility that converts any Markdown file to a styled PDF using the same CSS and rendering pipeline as the main exporter. Useful for re-generating a PDF from an already-tailored resume without running the full pipeline.
+
+**Direct:**
+```bash
+uv run md2pdf.py "D:\My Drive\...\file_resume.md"
+```
+
+**Via Make:**
+```bash
+make md2pdf FILE="D:\My Drive\...\file_resume.md"
+```
+
+The output PDF is written next to the source file with the same stem (`file_resume.pdf`).
+
 ## Performance Metrics
 
 Based on a local Nvidia mobile GPU setup (Ollama on a remote host):

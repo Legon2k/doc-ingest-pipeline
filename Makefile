@@ -1,4 +1,4 @@
-.PHONY: run run-k8 run-lenovo run-lggram install lint convert-templates
+.PHONY: run run-k8 run-lenovo run-lggram install lint convert-templates md2pdf
 
 run:
 	uv run main.py
@@ -20,3 +20,6 @@ lint:
 
 convert-templates:
 	uv run main.py --convert-templates-to-pdf
+
+md2pdf:
+	uv run md2pdf.py "$(FILE)"
