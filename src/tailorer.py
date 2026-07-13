@@ -31,9 +31,6 @@ from src.exporters import LocalArchiveExporter
 from src.models import LLMClient
 from src.parser import VacancyParser
 
-# Root directory for vacancy input files (relative to the project root).
-_VACANCIES_DIR = Path("vacancies")
-
 # File extensions the pipeline can process.
 _SUPPORTED_EXTENSIONS: frozenset[str] = frozenset(
     {".png", ".jpg", ".jpeg", ".txt", ".md"}
@@ -51,9 +48,9 @@ class ResumeTailorerEngine:
 
     def run(self) -> None:
         """Scan vacancies/ by category sub-folder and process every supported file."""
-        if not _VACANCIES_DIR.exists():
+        if not Config.VACANCIES_DIR.exists():
             print(
-                f"[Engine] Vacancies directory not found: {_VACANCIES_DIR.resolve()}\n"
+                f"[Engine] Vacancies directory not found: {Config.VACANCIES_DIR.resolve()}\n"
                 "[Engine] Create it and add vacancy files organised by category sub-folder."
             )
             return
@@ -71,7 +68,7 @@ class ResumeTailorerEngine:
         first_category = True
         start_time = time.perf_counter()
 
-        for category_dir in sorted(_VACANCIES_DIR.iterdir()):
+        for category_dir in sorted(Config.VACANCIES_DIR.iterdir()):
             if not category_dir.is_dir():
                 continue
 

@@ -67,3 +67,12 @@ class Config:
         if _templates_env
         else Path(__file__).resolve().parent.parent / "templates"
     )
+
+    # Vacancies directory: use .env value if set, otherwise default to
+    # the vacancies/ folder at the project root.
+    _vacancies_env: str | None = os.getenv("VACANCIES_DIR")
+    VACANCIES_DIR: Path = (
+        Path(_vacancies_env)
+        if _vacancies_env
+        else Path(__file__).resolve().parent.parent / "vacancies"
+    )
