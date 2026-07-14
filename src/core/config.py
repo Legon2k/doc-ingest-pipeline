@@ -10,8 +10,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from the project root (two levels up from this file: src/ -> project root)
-_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+# Load .env from the project root (three levels up from this file: src/core/ -> src/ -> project root)
+_ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=_ENV_PATH)
 
 
@@ -65,7 +65,7 @@ class Config:
     TEMPLATES_DIR: Path = (
         Path(_templates_env)
         if _templates_env
-        else Path(__file__).resolve().parent.parent / "templates"
+        else Path(__file__).resolve().parent.parent.parent / "templates"
     )
 
     # Vacancies directory: use .env value if set, otherwise default to
@@ -74,5 +74,5 @@ class Config:
     VACANCIES_DIR: Path = (
         Path(_vacancies_env)
         if _vacancies_env
-        else Path(__file__).resolve().parent.parent / "vacancies"
+        else Path(__file__).resolve().parent.parent.parent / "vacancies"
     )

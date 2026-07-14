@@ -26,10 +26,10 @@ For each vacancy file found, the engine:
 import time
 from pathlib import Path
 
-from src.config import Config
-from src.exporters import LocalArchiveExporter
-from src.models import LLMClient
-from src.parser import VacancyParser
+from src.core.config import Config
+from src.core.exporters import LocalArchiveExporter
+from src.core.models import LLMClient
+from src.core.parser import VacancyParser
 
 # File extensions the pipeline can process.
 _SUPPORTED_EXTENSIONS: frozenset[str] = frozenset(

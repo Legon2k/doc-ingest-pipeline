@@ -11,13 +11,12 @@ client instances:
 
 import base64
 import json
-import re
 import urllib.request
 from pathlib import Path
 
 from openai import OpenAI
 
-from src.config import Config
+from src.core.config import Config
 
 
 class LLMClient:

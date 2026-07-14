@@ -13,7 +13,7 @@ from pathlib import Path
 import markdown as md_lib
 from xhtml2pdf import pisa
 
-from src.config import Config
+from src.core.config import Config
 
 # Inline CSS applied to every generated PDF resume.
 # xhtml2pdf requires @page for margin control and built-in ReportLab fonts

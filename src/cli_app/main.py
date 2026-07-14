@@ -2,15 +2,15 @@
 Entry point for the doc-ingest-pipeline.
 
 Run with:
-    uv run main.py
-    uv run main.py --convert-templates-to-pdf
+    uv run -m src.cli_app.main
+    uv run -m src.cli_app.main --convert-templates-to-pdf
 """
 
 import argparse
 
-from src.config import Config
-from src.exporters import compile_md_to_pdf
-from src.tailorer import ResumeTailorerEngine
+from src.core.config import Config
+from src.core.exporters import compile_md_to_pdf
+from src.core.tailorer import ResumeTailorerEngine
 
 
 def convert_templates_to_pdf() -> None:

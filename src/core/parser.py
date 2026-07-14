@@ -7,7 +7,7 @@ regardless of whether it is an image or a text-based document.
 
 from pathlib import Path
 
-from src.models import LLMClient
+from src.core.models import LLMClient
 
 # File extensions handled by each parsing strategy
 _IMAGE_EXTENSIONS: frozenset[str] = frozenset({".png", ".jpg", ".jpeg"})
