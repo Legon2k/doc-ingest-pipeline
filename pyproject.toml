@@ -15,5 +15,10 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/your-username/doc-ingest-pipeline"
 
+[tool.uv.workspace]
+members = [
+    "src/web_ui",
+]
+
 # No build backend needed — this project is run directly via `uv run -m src.cli_app.main`.
 # Add a build-system table here if you later want to publish to PyPI.
