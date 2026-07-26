@@ -1,13 +1,13 @@
 const API_BASE = "http://localhost:8000/api";
 
-// Элементы UI
+// UI Elements
 const stepInitial = document.getElementById("stepInitial");
 const stepActive = document.getElementById("stepActive");
 const infoCompany = document.getElementById("infoCompany");
 const infoRole = document.getElementById("infoRole");
 const statusMessage = document.getElementById("statusMessage");
 
-// Восстановление состояния при открытии popup
+// Restore state when popup opens
 document.addEventListener("DOMContentLoaded", async () => {
   const state = await chrome.storage.local.get(["activeApplication"]);
   if (state.activeApplication) {
@@ -15,9 +15,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// 1. Создание резюме из буфера
+// 1. Process resume from clipboard
 document.getElementById("btnProcess").addEventListener("click", async () => {
-  setStatus("Считываем буфер обмена...");
+  setStatus("Reading clipboard...");
   try {
     const text = await navigator.clipboard.readText();
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -28,11 +28,11 @@ document.getElementById("btnProcess").addEventListener("click", async () => {
       body: JSON.stringify({ markdown_text: text, url: tab ? tab.url : "" })
     });
 
-    if (!response.ok) throw new Error(`Ошибка сервера: ${response.status}`);
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
     const data = await response.json();
     
-    // Сохраняем стейт текущего отклика
+    // Save state for the current application
     const appState = {
       company: data.company,
       role: data.role,
@@ -42,24 +42,24 @@ document.getElementById("btnProcess").addEventListener("click", async () => {
     await chrome.storage.local.set({ activeApplication: appState });
 
     showActiveState(appState);
-    setStatus("Резюме и PDF успешно созданы!");
+    setStatus("Resume and PDF created successfully!");
   } catch (err) {
-    setStatus(`Ошибка: ${err.message}`);
+    setStatus(`Error: ${err.message}`);
   }
 });
 
-// 2. Копирование пути к PDF
+// 2. Copy PDF path
 document.getElementById("btnCopyPdf").addEventListener("click", async () => {
   const state = await chrome.storage.local.get(["activeApplication"]);
   if (state.activeApplication && state.activeApplication.pdf_path) {
     await navigator.clipboard.writeText(state.activeApplication.pdf_path);
-    setStatus("Путь к PDF скопирован! Вставьте его в окно загрузки.");
+    setStatus("PDF path copied! Paste it into the file upload dialog.");
   }
 });
 
-// 3. Добавление Cover Letter
+// 3. Add Cover Letter
 document.getElementById("btnAddCover").addEventListener("click", async () => {
-  setStatus("Считываем Cover Letter...");
+  setStatus("Reading Cover Letter...");
   try {
     const text = await navigator.clipboard.readText();
     const state = await chrome.storage.local.get(["activeApplication"]);
@@ -73,15 +73,15 @@ document.getElementById("btnAddCover").addEventListener("click", async () => {
       })
     });
 
-    if (!response.ok) throw new Error("Не удалось добавить Cover Letter");
+    if (!response.ok) throw new Error("Failed to add Cover Letter");
 
-    setStatus("Cover Letter сохранено и скомпилировано в PDF!");
+    setStatus("Cover Letter saved and compiled to PDF!");
   } catch (err) {
-    setStatus(`Ошибка: ${err.message}`);
+    setStatus(`Error: ${err.message}`);
   }
 });
 
-// 4. Финализация отклика (Applied)
+// 4. Finalize application (Applied)
 document.getElementById("btnFinalize").addEventListener("click", async () => {
   try {
     const state = await chrome.storage.local.get(["activeApplication"]);
@@ -98,26 +98,26 @@ document.getElementById("btnFinalize").addEventListener("click", async () => {
       })
     });
 
-    if (!response.ok) throw new Error("Не удалось зафиксировать отклик");
+    if (!response.ok) throw new Error("Failed to finalize application");
 
     await chrome.storage.local.remove(["activeApplication"]);
     showInitialState();
-    setStatus("Отклик успешно зафиксирован и сохранен в Obsidian!");
+    setStatus("Application recorded and synced to Obsidian!");
   } catch (err) {
-    setStatus(`Ошибка: ${err.message}`);
+    setStatus(`Error: ${err.message}`);
   }
 });
 
-// 5. Сброс
+// 5. Reset
 document.getElementById("btnReset").addEventListener("click", async () => {
   await chrome.storage.local.remove(["activeApplication"]);
   showInitialState();
-  setStatus("Состояние сброшено.");
+  setStatus("State reset.");
 });
 
 function showActiveState(app) {
-  infoCompany.textContent = `Компания: ${app.company}`;
-  infoRole.textContent = `Роль: ${app.role}`;
+  infoCompany.textContent = `Company: ${app.company}`;
+  infoRole.textContent = `Role: ${app.role}`;
   stepInitial.classList.add("hidden");
   stepActive.classList.remove("hidden");
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <style>
@@ -60,25 +60,25 @@
 <body>
   <h3>🎯 Resume Tailor</h3>
 
-  <!-- Состояние 1: Старт -->
+  <!-- State 1: Initial -->
   <div id="stepInitial">
-    <button id="btnProcess" class="btn">📄 Сгенерировать из буфера</button>
+    <button id="btnProcess" class="btn">📄 Process from Clipboard</button>
   </div>
 
-  <!-- Состояние 2: Активный отклик -->
+  <!-- State 2: Active Application -->
   <div id="stepActive" class="hidden">
     <div class="info-box">
-      <div class="info-title" id="infoCompany">Компания: -</div>
-      <div id="infoRole">Роль: -</div>
+      <div class="info-title" id="infoCompany">Company: -</div>
+      <div id="infoRole">Role: -</div>
     </div>
 
-    <button id="btnCopyPdf" class="btn btn-secondary">📋 Скопировать путь к PDF</button>
-    <button id="btnAddCover" class="btn btn-secondary">✉️ Добавить Cover Letter</button>
-    <button id="btnFinalize" class="btn btn-success">✅ Подался (Applied)</button>
-    <button id="btnReset" class="btn" style="background-color: #dc2626; margin-top: 12px;">🔄 Сбросить</button>
+    <button id="btnCopyPdf" class="btn btn-secondary">📋 Copy PDF Path</button>
+    <button id="btnAddCover" class="btn btn-secondary">✉️ Add Cover Letter</button>
+    <button id="btnFinalize" class="btn btn-success">✅ Applied</button>
+    <button id="btnReset" class="btn" style="background-color: #dc2626; margin-top: 12px;">🔄 Reset</button>
   </div>
 
-  <div id="statusMessage">Ожидание действий...</div>
+  <div id="statusMessage">Awaiting action...</div>
 
   <script src="popup.js"></script>
 </body>
