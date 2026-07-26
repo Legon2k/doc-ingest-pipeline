@@ -98,6 +98,10 @@ def sanitize_filename(name: str) -> str:
     """Sanitize string for safe filesystem usage."""
     return re.sub(r'[\\/*?:"<>|]', "", name).replace(" ", "_")
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for extension status monitoring."""
+    return {"status": "ok"}
 
 # ------------------------------------------------------------------
 # API Endpoints

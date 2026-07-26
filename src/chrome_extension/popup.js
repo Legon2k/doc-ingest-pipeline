@@ -1,4 +1,5 @@
 const API_BASE = "http://localhost:8000/api";
+const HEALTH_URL = "http://localhost:8000/health";
 
 // UI Elements
 const stepInitial = document.getElementById("stepInitial");
@@ -6,9 +7,46 @@ const stepActive = document.getElementById("stepActive");
 const infoCompany = document.getElementById("infoCompany");
 const infoRole = document.getElementById("infoRole");
 const statusMessage = document.getElementById("statusMessage");
+const serverStatus = document.getElementById("serverStatus");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
 
-// Restore state when popup opens
+/**
+ * Checks server health and updates the status banner UI and action buttons.
+ */
+async function checkApiHealth() {
+  const btnProcess = document.getElementById("btnProcess");
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
+
+    const response = await fetch(HEALTH_URL, {
+      method: "GET",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      serverStatus.className = "server-status status-online";
+      statusDot.className = "status-dot dot-online";
+      statusText.textContent = "API Service Online";
+      if (btnProcess) btnProcess.disabled = false;
+    } else {
+      throw new Error("Service unavailable");
+    }
+  } catch (error) {
+    serverStatus.className = "server-status status-offline";
+    statusDot.className = "status-dot dot-offline";
+    statusText.textContent = "API Offline (Start FastAPI server)";
+    if (btnProcess) btnProcess.disabled = true;
+  }
+}
+
+// Restore active state and perform health check when popup opens
 document.addEventListener("DOMContentLoaded", async () => {
+  checkApiHealth();
+
   const state = await chrome.storage.local.get(["activeApplication"]);
   if (state.activeApplication) {
     showActiveState(state.activeApplication);
@@ -32,7 +70,7 @@ document.getElementById("btnProcess").addEventListener("click", async () => {
 
     const data = await response.json();
     
-    // Save state for the current application
+    // Save state for the active application
     const appState = {
       company: data.company,
       role: data.role,
@@ -108,7 +146,7 @@ document.getElementById("btnFinalize").addEventListener("click", async () => {
   }
 });
 
-// 5. Reset
+// 5. Reset state
 document.getElementById("btnReset").addEventListener("click", async () => {
   await chrome.storage.local.remove(["activeApplication"]);
   showInitialState();
