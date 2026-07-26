@@ -8,6 +8,7 @@ Provides endpoints for:
 """
 
 import os
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -57,6 +58,69 @@ class FinalizePayload(BaseModel):
 # ------------------------------------------------------------------
 # Helper Functions
 # ------------------------------------------------------------------
+def repair_and_parse_json(json_str: str) -> dict[str, Any]:
+    """Cleans up common LLM string-escaping issues in raw JSON strings."""
+    # Очищаем от Markdown-кавычек ```json
+    cleaned = re.sub(r"^```[a-zA-Z]*\n?", "", json_str.strip())
+    cleaned = re.sub(r"\n?```$", "", cleaned).strip()
+
+    # Попытка 1: Прямой парсинг
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Попытка 2: Замена сырых переносов строк внутри JSON-строк
+    # Заменяем реальные переносы внутри кавычек на \n
+    repaired = re.sub(
+        r'(?<=: ")(.*?)(?="(?:,\s*"|\s*\}))',
+        lambda m: m.group(1).replace("\n", "\\n").replace("\r", ""),
+        cleaned,
+        flags=re.DOTALL,
+    )
+
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Failed to parse JSON block: {exc}") from exc
+
+
+def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
+    """Separates readable Markdown (Section 1) from compact JSON metadata (Section 2)."""
+    raw = text.strip()
+
+    # 1. Извлекаем блок после маркера ---JSON_START---
+    if "---JSON_START---" in raw:
+        parts = raw.split("---JSON_START---")
+
+        # Все, что ДО маркера — чистое резюме (Секция 1)
+        md_body = parts[0].strip()
+
+        # Все, что ПОСЛЕ маркера — компактный JSON (Секция 2)
+        json_part = parts[1].strip()
+
+        # Очищаем от возможных кодовых блоков ```json ... ```
+        json_part = re.sub(r"^```[a-zA-Z]*\n?", "", json_part)
+        json_part = re.sub(r"\n?```$", "", json_part).strip()
+
+        try:
+            meta = json.loads(json_part)
+            return meta, md_body
+        except json.JSONDecodeError as exc:
+            print(f"[API Warning] Could not parse mini-JSON: {exc}")
+            return {}, md_body
+
+    # 2. Если скопирован ТОЛЬКО сам JSON блок (быстрый тестер)
+    if raw.startswith("{") and raw.endswith("}"):
+        try:
+            meta = json.loads(raw)
+            return meta, meta.get("resume_markdown", "")
+        except Exception:
+            pass
+
+    # 3. Резервный фоллбэк: если маркера нет совсем, отдаем весь текст
+    return {}, raw
+
 def parse_yaml_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     """Extract YAML frontmatter even if the LLM adds '##', '```yaml', or starts directly with keys."""
     raw = text.strip()
@@ -117,38 +181,33 @@ def sanitize_filename(name: str) -> str:
 # ------------------------------------------------------------------
 @app.post("/api/process-resume")
 async def process_resume(payload: ResumePayload):
-    """Step 1: Receive Markdown from Chrome Extension, parse metadata,
+    meta, md_body = parse_payload_from_clipboard(payload.markdown_text)
 
-    create dated directory, save .md, and compile .pdf.
-    """
-    meta, md_body = parse_yaml_frontmatter(payload.markdown_text)
+    if not md_body:
+        raise HTTPException(
+            status_code=400, detail="Could not extract resume content"
+        )
 
-    # Достаем данные из Front Matter или ставим значения по умолчанию
+    # Забираем метаданные из Секции 2 (или берем фоллбэк)
     company = sanitize_filename(meta.get("company", "Company"))
     role = sanitize_filename(meta.get("role", "Developer"))
     category = sanitize_filename(meta.get("category", "developer_dotnet"))
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # Папка архива (согласно вашему стандарту в Config)
+    # Формируем пути
     folder_name = f"{today}_{company}_{category}"
     archive_dir = Config.GOOGLE_DRIVE_PATH / "Archive" / folder_name
     archive_dir.mkdir(parents=True, exist_ok=True)
 
-    # Имена файлов
     file_stem = f"{company}_{role}"
     md_file_path = archive_dir / f"{file_stem}_resume.md"
     pdf_file_path = archive_dir / f"{file_stem}_resume.pdf"
 
-    # 1. Сохраняем чистый Markdown
+    # Сохраняем чистый Markdown из Секции 1
     md_file_path.write_text(md_body, encoding="utf-8")
 
-    # 2. Генерируем PDF используя ваш существующий xhtml2pdf модуль
-    try:
-        compile_md_to_pdf(md_body, pdf_file_path)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to generate PDF: {e}"
-        )
+    # Сборка PDF (позиционные аргументы: текст, путь)
+    compile_md_to_pdf(md_body, pdf_file_path)
 
     return {
         "status": "success",
@@ -158,7 +217,6 @@ async def process_resume(payload: ResumePayload):
         "pdf_path": str(pdf_file_path.resolve()),
         "md_path": str(md_file_path.resolve()),
     }
-
 
 @app.post("/api/add-cover-letter")
 async def add_cover_letter(payload: CoverLetterPayload):
