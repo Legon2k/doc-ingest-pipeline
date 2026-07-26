@@ -5,11 +5,14 @@ description = "Automated unstructured document processing and resume tailoring p
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
     "markdown>=3.10.2",
     "openai>=1.35.0",
     "pillow>=10.0.0",
     "python-dotenv>=1.0.0",
     "xhtml2pdf>=0.2.17",
+    "pyyaml>=6.0.1",
 ]
 
 [project.urls]

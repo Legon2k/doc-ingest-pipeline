@@ -1,4 +1,4 @@
-.PHONY: run run-k8 run-lenovo run-lggram run-ui install lint convert-templates md2pdf
+.PHONY: run run-k8 run-lenovo run-lggram run-ui install lint convert-templates md2pdf run-api
 
 run:
 	uv run -m src.cli_app.main
@@ -33,3 +33,7 @@ ifndef FILE
 	$(error FILE variable is not set. Usage: make md2pdf FILE=path/to/file.md)
 endif
 	uv run -m src.cli_app.md2pdf "$(FILE)"
+
+run-api:
+	$(eval export PYTHONPATH=.)
+	uv run uvicorn src.api.server:app --reload --port 8000
