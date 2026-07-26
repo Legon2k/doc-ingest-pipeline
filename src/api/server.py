@@ -58,33 +58,6 @@ class FinalizePayload(BaseModel):
 # ------------------------------------------------------------------
 # Helper Functions
 # ------------------------------------------------------------------
-def repair_and_parse_json(json_str: str) -> dict[str, Any]:
-    """Cleans up common LLM string-escaping issues in raw JSON strings."""
-    # Очищаем от Markdown-кавычек ```json
-    cleaned = re.sub(r"^```[a-zA-Z]*\n?", "", json_str.strip())
-    cleaned = re.sub(r"\n?```$", "", cleaned).strip()
-
-    # Попытка 1: Прямой парсинг
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-
-    # Попытка 2: Замена сырых переносов строк внутри JSON-строк
-    # Заменяем реальные переносы внутри кавычек на \n
-    repaired = re.sub(
-        r'(?<=: ")(.*?)(?="(?:,\s*"|\s*\}))',
-        lambda m: m.group(1).replace("\n", "\\n").replace("\r", ""),
-        cleaned,
-        flags=re.DOTALL,
-    )
-
-    try:
-        return json.loads(repaired)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Failed to parse JSON block: {exc}") from exc
-
-
 def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
     """Separates readable Markdown (Section 1) from compact JSON metadata (Section 2)."""
     raw = text.strip()
@@ -119,55 +92,6 @@ def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
             pass
 
     # 3. Резервный фоллбэк: если маркера нет совсем, отдаем весь текст
-    return {}, raw
-
-def parse_yaml_frontmatter(text: str) -> tuple[dict[str, Any], str]:
-    """Extract YAML frontmatter even if the LLM adds '##', '```yaml', or starts directly with keys."""
-    raw = text.strip()
-
-    # 1. Удаляем обертки кодовых блоков (```yaml ... ```) если модель обернула весь ответ
-    if raw.startswith("```"):
-        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
-        raw = re.sub(r"\n```$", "", raw)
-        raw = raw.strip()
-
-    # 2. Если перед company: вылезли '##', '---' или пробелы — нормализуем начало
-    # Удаляем ведущие '##', '---' и т.д., чтобы зацепиться за первые ключи
-    cleaned = re.sub(r"^(#+\s*|---\s*)*", "", raw).strip()
-
-    # 3. Регулярка для поиска блока ключей (company, role, category) и отделения их от тела (# Oleg Savelyev)
-    # Ищет блок от 'company:' до первого основного Markdown заголовка ('# ') или второго '---'
-    pattern = r"^(company:\s*.*?\n)(.*?)(?=\n#|\n---|\n\n#|$)"
-    match = re.search(pattern, cleaned, re.DOTALL | re.IGNORECASE)
-
-    if match:
-        yaml_part = match.group(0).strip()
-        # Все что осталось после найденной шапки — это чистое резюме
-        body_part = cleaned[match.end() :].strip()
-
-        # Если тело все еще начинается с '---', убираем этот разделитель
-        body_part = re.sub(r"^---\s*\n?", "", body_part).strip()
-
-        # Чистим сам YAML от возможных '## ' на каждой строчке
-        clean_yaml = re.sub(r"^#+\s*", "", yaml_part, flags=re.MULTILINE)
-
-        try:
-            meta = yaml.safe_load(clean_yaml) or {}
-            return meta, body_part
-        except Exception:
-            pass
-
-    # Резервный поиск стандартного формата --- ... ---
-    std_pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
-    std_match = re.match(std_pattern, raw, re.DOTALL)
-    if std_match:
-        try:
-            meta = yaml.safe_load(std_match.group(1)) or {}
-            return meta, std_match.group(2).strip()
-        except Exception:
-            pass
-
-    # Если разобрать не удалось — возвращаем пустую метаданную и весь текст
     return {}, raw
 
 
@@ -220,14 +144,14 @@ async def process_resume(payload: ResumePayload):
 
 @app.post("/api/add-cover-letter")
 async def add_cover_letter(payload: CoverLetterPayload):
-    """Step 2 (Optional): Append Cover Letter to the active application folder."""
     target_dir = Path(payload.folder_path)
     if not target_dir.exists():
         raise HTTPException(
             status_code=404, detail="Application folder not found"
         )
 
-    _, cl_body = parse_yaml_frontmatter(payload.markdown_text)
+    # Используем наш универсальный парсер (заберет Markdown Секции 1)
+    _, cl_body = parse_payload_from_clipboard(payload.markdown_text)
 
     cl_md_path = target_dir / "Cover_Letter.md"
     cl_pdf_path = target_dir / "Cover_Letter.pdf"
@@ -239,7 +163,6 @@ async def add_cover_letter(payload: CoverLetterPayload):
         "status": "success",
         "cover_letter_pdf": str(cl_pdf_path.resolve()),
     }
-
 
 @app.post("/api/finalize-application")
 async def finalize_application(payload: FinalizePayload):
