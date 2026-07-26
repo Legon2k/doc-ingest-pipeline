@@ -58,18 +58,53 @@ class FinalizePayload(BaseModel):
 # Helper Functions
 # ------------------------------------------------------------------
 def parse_yaml_frontmatter(text: str) -> tuple[dict[str, Any], str]:
-    """Extract YAML frontmatter from markdown text if present."""
-    pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
-    match = re.match(pattern, text, re.DOTALL)
+    """Extract YAML frontmatter even if the LLM adds '##', '```yaml', or starts directly with keys."""
+    raw = text.strip()
+
+    # 1. Удаляем обертки кодовых блоков (```yaml ... ```) если модель обернула весь ответ
+    if raw.startswith("```"):
+        raw = re.sub(r"^```[a-zA-Z]*\n", "", raw)
+        raw = re.sub(r"\n```$", "", raw)
+        raw = raw.strip()
+
+    # 2. Если перед company: вылезли '##', '---' или пробелы — нормализуем начало
+    # Удаляем ведущие '##', '---' и т.д., чтобы зацепиться за первые ключи
+    cleaned = re.sub(r"^(#+\s*|---\s*)*", "", raw).strip()
+
+    # 3. Регулярка для поиска блока ключей (company, role, category) и отделения их от тела (# Oleg Savelyev)
+    # Ищет блок от 'company:' до первого основного Markdown заголовка ('# ') или второго '---'
+    pattern = r"^(company:\s*.*?\n)(.*?)(?=\n#|\n---|\n\n#|$)"
+    match = re.search(pattern, cleaned, re.DOTALL | re.IGNORECASE)
+
     if match:
-        yaml_str = match.group(1)
-        body = match.group(2)
+        yaml_part = match.group(0).strip()
+        # Все что осталось после найденной шапки — это чистое резюме
+        body_part = cleaned[match.end() :].strip()
+
+        # Если тело все еще начинается с '---', убираем этот разделитель
+        body_part = re.sub(r"^---\s*\n?", "", body_part).strip()
+
+        # Чистим сам YAML от возможных '## ' на каждой строчке
+        clean_yaml = re.sub(r"^#+\s*", "", yaml_part, flags=re.MULTILINE)
+
         try:
-            meta = yaml.safe_load(yaml_str) or {}
-            return meta, body.strip()
+            meta = yaml.safe_load(clean_yaml) or {}
+            return meta, body_part
         except Exception:
-            return {}, text.strip()
-    return {}, text.strip()
+            pass
+
+    # Резервный поиск стандартного формата --- ... ---
+    std_pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
+    std_match = re.match(std_pattern, raw, re.DOTALL)
+    if std_match:
+        try:
+            meta = yaml.safe_load(std_match.group(1)) or {}
+            return meta, std_match.group(2).strip()
+        except Exception:
+            pass
+
+    # Если разобрать не удалось — возвращаем пустую метаданную и весь текст
+    return {}, raw
 
 
 def sanitize_filename(name: str) -> str:
