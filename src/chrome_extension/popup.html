@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background-color: #f9fa0b;
+      background: #ffffff;
+      color: #1f2937;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 16px;
+      color: #111827;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border: none;
+      border-radius: 6px;
+      background-color: #2563eb;
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .btn:hover { background-color: #1d4ed8; }
+    .btn-secondary { background-color: #4b5563; }
+    .btn-secondary:hover { background-color: #374151; }
+    .btn-success { background-color: #059669; }
+    .btn-success:hover { background-color: #047857; }
+    .hidden { display: none; }
+    .info-box {
+      background-color: #f3f4f6;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .info-title { font-weight: bold; margin-bottom: 4px; }
+    #statusMessage {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h3>🎯 Resume Tailor</h3>
+
+  <!-- Состояние 1: Старт -->
+  <div id="stepInitial">
+    <button id="btnProcess" class="btn">📄 Сгенерировать из буфера</button>
+  </div>
+
+  <!-- Состояние 2: Активный отклик -->
+  <div id="stepActive" class="hidden">
+    <div class="info-box">
+      <div class="info-title" id="infoCompany">Компания: -</div>
+      <div id="infoRole">Роль: -</div>
+    </div>
+
+    <button id="btnCopyPdf" class="btn btn-secondary">📋 Скопировать путь к PDF</button>
+    <button id="btnAddCover" class="btn btn-secondary">✉️ Добавить Cover Letter</button>
+    <button id="btnFinalize" class="btn btn-success">✅ Подался (Applied)</button>
+    <button id="btnReset" class="btn" style="background-color: #dc2626; margin-top: 12px;">🔄 Сбросить</button>
+  </div>
+
+  <div id="statusMessage">Ожидание действий...</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

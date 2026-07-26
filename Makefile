@@ -1,4 +1,4 @@
-.PHONY: run run-k8 run-lenovo run-lggram run-ui install lint convert-templates md2pdf run-api
+.PHONY: run run-k8 run-lenovo run-lggram run-ui install lint convert-templates md2pdf run-api check-ext
 
 run:
 	uv run -m src.cli_app.main
@@ -37,3 +37,7 @@ endif
 run-api:
 	$(eval export PYTHONPATH=.)
 	uv run uvicorn src.api.server:app --reload --port 8000
+
+check-ext:
+	@echo "Checking Chrome Extension path..."
+	@powershell -Command "Get-ChildItem src/chrome_extension/"
