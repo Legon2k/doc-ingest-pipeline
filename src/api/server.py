@@ -1,13 +1,12 @@
 """FastAPI Server for Chrome Extension integration.
 
 Provides endpoints for:
-1. Receiving tailored Markdown from clipboard, parsing YAML metadata.
+1. Receiving tailored Markdown from clipboard and parsing JSON metadata.
 2. Saving raw .md and generating .pdf in timestamped archive folder.
 3. Adding Cover Letter to the current active application folder.
 4. Finalizing application state with Source URL and Obsidian note creation.
 """
 
-import os
 import json
 import re
 from datetime import datetime
@@ -24,10 +23,10 @@ from src.core.exporters import LocalArchiveExporter, compile_md_to_pdf
 
 app = FastAPI(title="Resume Tailor Automation API", version="1.0.0")
 
-# Включаем CORS, чтобы Chrome Extension мог без проблем делать fetch()
+# Enable CORS for Chrome Extension fetch requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене можно ограничить id расширения
+    allow_origins=["*"],  # Restrict to specific extension ID in production if needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,17 +61,17 @@ def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
     """Separates readable Markdown (Section 1) from compact JSON metadata (Section 2)."""
     raw = text.strip()
 
-    # 1. Извлекаем блок после маркера ---JSON_START---
+    # 1. Extract content following the ---JSON_START--- delimiter
     if "---JSON_START---" in raw:
         parts = raw.split("---JSON_START---")
 
-        # Все, что ДО маркера — чистое резюме (Секция 1)
+        # Everything before the marker is the clean resume body (Section 1)
         md_body = parts[0].strip()
 
-        # Все, что ПОСЛЕ маркера — компактный JSON (Секция 2)
+        # Everything after the marker is the compact metadata JSON (Section 2)
         json_part = parts[1].strip()
 
-        # Очищаем от возможных кодовых блоков ```json ... ```
+        # Strip any surrounding markdown code fences ```json ... ```
         json_part = re.sub(r"^```[a-zA-Z]*\n?", "", json_part)
         json_part = re.sub(r"\n?```$", "", json_part).strip()
 
@@ -83,7 +82,7 @@ def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
             print(f"[API Warning] Could not parse mini-JSON: {exc}")
             return {}, md_body
 
-    # 2. Если скопирован ТОЛЬКО сам JSON блок (быстрый тестер)
+    # 2. Direct JSON payload fallback (useful for standalone testing)
     if raw.startswith("{") and raw.endswith("}"):
         try:
             meta = json.loads(raw)
@@ -91,7 +90,7 @@ def parse_payload_from_clipboard(text: str) -> tuple[dict[str, Any], str]:
         except Exception:
             pass
 
-    # 3. Резервный фоллбэк: если маркера нет совсем, отдаем весь текст
+    # 3. Fallback: if no marker is found, return the full text as raw markdown
     return {}, raw
 
 
@@ -105,6 +104,7 @@ def sanitize_filename(name: str) -> str:
 # ------------------------------------------------------------------
 @app.post("/api/process-resume")
 async def process_resume(payload: ResumePayload):
+    """Step 1: Save tailored resume markdown and compile PDF into archive folder."""
     meta, md_body = parse_payload_from_clipboard(payload.markdown_text)
 
     if not md_body:
@@ -112,25 +112,35 @@ async def process_resume(payload: ResumePayload):
             status_code=400, detail="Could not extract resume content"
         )
 
-    # Забираем метаданные из Секции 2 (или берем фоллбэк)
     company = sanitize_filename(meta.get("company", "Company"))
     role = sanitize_filename(meta.get("role", "Developer"))
     category = sanitize_filename(meta.get("category", "developer_dotnet"))
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # Формируем пути
+    # Replace special characters safely for file naming
+    safe_role = (
+        role.replace("C#", "CSharp")
+        .replace("c#", "CSharp")
+        .replace(".NET", "DotNet")
+    )
+    safe_prefix = sanitize_filename(getattr(Config, "CANDIDATE_NAME", ""))
+
+    # Target archive directory
     folder_name = f"{today}_{company}_{category}"
     archive_dir = Config.GOOGLE_DRIVE_PATH / "Archive" / folder_name
     archive_dir.mkdir(parents=True, exist_ok=True)
 
-    file_stem = f"{company}_{role}"
+    # Construct file stem without trailing/leading underscores if prefix is empty
+    name_parts = [
+        part for part in [safe_prefix, company, safe_role] if part.strip()
+    ]
+    file_stem = "_".join(name_parts)
+
     md_file_path = archive_dir / f"{file_stem}_resume.md"
     pdf_file_path = archive_dir / f"{file_stem}_resume.pdf"
 
-    # Сохраняем чистый Markdown из Секции 1
+    # Save Markdown file and compile PDF
     md_file_path.write_text(md_body, encoding="utf-8")
-
-    # Сборка PDF (позиционные аргументы: текст, путь)
     compile_md_to_pdf(md_body, pdf_file_path)
 
     return {
@@ -142,15 +152,17 @@ async def process_resume(payload: ResumePayload):
         "md_path": str(md_file_path.resolve()),
     }
 
+
 @app.post("/api/add-cover-letter")
 async def add_cover_letter(payload: CoverLetterPayload):
+    """Step 2 (Optional): Append Cover Letter to the active application folder."""
     target_dir = Path(payload.folder_path)
     if not target_dir.exists():
         raise HTTPException(
             status_code=404, detail="Application folder not found"
         )
 
-    # Используем наш универсальный парсер (заберет Markdown Секции 1)
+    # Use general parser to extract clean Markdown text (Section 1)
     _, cl_body = parse_payload_from_clipboard(payload.markdown_text)
 
     cl_md_path = target_dir / "Cover_Letter.md"
@@ -164,13 +176,14 @@ async def add_cover_letter(payload: CoverLetterPayload):
         "cover_letter_pdf": str(cl_pdf_path.resolve()),
     }
 
+
 @app.post("/api/finalize-application")
 async def finalize_application(payload: FinalizePayload):
     """Step 3: Save metadata card and generate note in Obsidian vault."""
     target_dir = Path(payload.folder_path)
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # 1. Записываем мета-карточку отклика в папку архива
+    # 1. Save application metadata card to archive directory
     card_data = {
         "company": payload.company,
         "role": payload.role,
@@ -182,10 +195,9 @@ async def finalize_application(payload: FinalizePayload):
     with open(card_path, "w", encoding="utf-8") as f:
         yaml.dump(card_data, f, allow_unicode=True)
 
-    # 2. Создаем заметку в Obsidian с помощью вашего класса LocalArchiveExporter
+    # 2. Create note in Obsidian vault via LocalArchiveExporter
     try:
         exporter = LocalArchiveExporter()
-        # Извлекаем текст резюме из сохраненного файла
         resume_md_files = list(target_dir.glob("*_resume.md"))
         tailored_md = (
             resume_md_files[0].read_text(encoding="utf-8")
