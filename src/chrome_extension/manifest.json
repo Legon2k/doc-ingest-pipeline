@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Tailor Helper",
+  "version": "1.0.0",
+  "description": "Quickly send tailored resume content from clipboard to local FastAPI service.",
+  "permissions": [
+    "clipboardRead",
+    "clipboardWrite",
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Resume Tailor"
+  }
+}

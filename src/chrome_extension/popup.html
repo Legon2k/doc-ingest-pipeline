@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #ffffff;
+      color: #1f2937;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #111827;
+    }
+    /* Server status banner styling */
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .status-online {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .status-offline {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-online { background-color: #10b981; }
+    .dot-offline { background-color: #9ca3af; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border: none;
+      border-radius: 6px;
+      background-color: #2563eb;
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .btn:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .btn:hover:not(:disabled) { background-color: #1d4ed8; }
+    .btn-secondary { background-color: #4b5563; }
+    .btn-secondary:hover:not(:disabled) { background-color: #374151; }
+    .btn-success { background-color: #059669; }
+    .btn-success:hover:not(:disabled) { background-color: #047857; }
+    .hidden { display: none; }
+    .info-box {
+      background-color: #f3f4f6;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .info-title { font-weight: bold; margin-bottom: 4px; }
+    #statusMessage {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h3>🎯 Resume Tailor</h3>
+
+  <!-- Server health status indicator -->
+  <div id="serverStatus" class="server-status status-offline">
+    <span id="statusDot" class="status-dot dot-offline"></span>
+    <span id="statusText">Checking API status...</span>
+  </div>
+
+  <!-- State 1: Initial -->
+  <div id="stepInitial">
+    <button id="btnProcess" class="btn">📄 Process from Clipboard</button>
+  </div>
+
+  <!-- State 2: Active Application -->
+  <div id="stepActive" class="hidden">
+    <div class="info-box">
+      <div class="info-title" id="infoCompany">Company: -</div>
+      <div id="infoRole">Role: -</div>
+    </div>
+
+    <button id="btnCopyPdf" class="btn btn-secondary">📋 Copy PDF Path</button>
+    <button id="btnAddCover" class="btn btn-secondary">✉️ Add Cover Letter</button>
+    <button id="btnFinalize" class="btn btn-success">✅ Applied</button>
+    <button id="btnReset" class="btn" style="background-color: #dc2626; margin-top: 12px;">🔄 Reset</button>
+  </div>
+
+  <div id="statusMessage">Awaiting action...</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

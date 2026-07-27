@@ -10,8 +10,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from the project root (two levels up from this file: src/ -> project root)
-_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+# Load .env from the project root (three levels up from this file: src/core/ -> src/ -> project root)
+_ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(dotenv_path=_ENV_PATH)
 
 
@@ -59,11 +59,22 @@ class Config:
     GOOGLE_DRIVE_PATH: Path = Path(os.getenv("GOOGLE_DRIVE_PATH", "./google_drive"))
     OBSIDIAN_VAULT_PATH: Path = Path(os.getenv("OBSIDIAN_VAULT_PATH", "./obsidian_vault"))
 
+    # Optional prefix added to generated file names (e.g., "First_Last"). Leave empty to omit.
+    CANDIDATE_NAME: str = os.getenv("CANDIDATE_NAME", "")
+
     # Templates directory: use .env value if set, otherwise default to
     # the templates/ folder at the project root.
     _templates_env: str | None = os.getenv("TEMPLATES_DIR")
     TEMPLATES_DIR: Path = (
         Path(_templates_env)
         if _templates_env
-        else Path(__file__).resolve().parent.parent / "templates"
+        else Path(__file__).resolve().parent.parent.parent / "templates"
+    )
+    # Vacancies directory: use .env value if set, otherwise default to
+    # the vacancies/ folder at the project root.
+    _vacancies_env: str | None = os.getenv("VACANCIES_DIR")
+    VACANCIES_DIR: Path = (
+        Path(_vacancies_env)
+        if _vacancies_env
+        else Path(__file__).resolve().parent.parent.parent / "vacancies"
     )

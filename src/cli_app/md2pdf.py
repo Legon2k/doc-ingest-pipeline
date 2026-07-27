@@ -1,7 +1,7 @@
 """Standalone utility: convert a Markdown file to PDF.
 
 Usage:
-    uv run md2pdf.py <path/to/file.md>
+    uv run -m src.cli_app.md2pdf <path/to/file.md>
 
 The output PDF is written next to the source file with the same stem.
 """
@@ -9,12 +9,12 @@ The output PDF is written next to the source file with the same stem.
 import sys
 from pathlib import Path
 
-from src.exporters import compile_md_to_pdf
+from src.core.exporters import compile_md_to_pdf
 
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: uv run md2pdf.py <path/to/file.md>")
+        print("Usage: uv run -m src.cli_app.md2pdf <path/to/file.md>")
         sys.exit(1)
 
     input_path = Path(sys.argv[1])

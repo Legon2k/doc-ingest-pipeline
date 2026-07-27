@@ -5,15 +5,23 @@ description = "Automated unstructured document processing and resume tailoring p
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
     "markdown>=3.10.2",
     "openai>=1.35.0",
     "pillow>=10.0.0",
     "python-dotenv>=1.0.0",
     "xhtml2pdf>=0.2.17",
+    "pyyaml>=6.0.1",
 ]
 
 [project.urls]
 Homepage = "https://github.com/your-username/doc-ingest-pipeline"
 
-# No build backend needed — this project is run directly via `uv run main.py`.
+[tool.uv.workspace]
+members = [
+    "src/web_ui",
+]
+
+# No build backend needed — this project is run directly via `uv run -m src.cli_app.main`.
 # Add a build-system table here if you later want to publish to PyPI.

@@ -1,25 +1,43 @@
-.PHONY: run run-k8 run-lenovo run-lggram install lint convert-templates md2pdf
+.PHONY: run run-k8 run-lenovo run-lggram run-ui install lint convert-templates md2pdf run-api check-ext
 
 run:
-	uv run main.py
+	uv run -m src.cli_app.main
 
 run-k8:
-	uv run --env-file .env.backup.k8plus main.py
+	uv run --env-file .env.backup.k8plus -m src.cli_app.main
 
 run-lenovo:
-	uv run --env-file .env.backup.lenovo main.py
+	uv run --env-file .env.backup.lenovo -m src.cli_app.main
 
 run-lggram:
-	uv run --env-file .env.backup.lggram main.py
+	uv run --env-file .env.backup.lggram -m src.cli_app.main
 
+# Run the Streamlit UI with PYTHONPATH set to resolve monorepo imports
+run-ui:
+	$(eval export PYTHONPATH=.)
+	uv run --package web-ui streamlit run src/web_ui/app.py
+		
 install:
 	uv sync
 
 lint:
-	uv run ruff check src/ main.py
+	uv run ruff check src/
 
 convert-templates:
-	uv run main.py --convert-templates-to-pdf
+	uv run -m src.cli_app.main --convert-templates-to-pdf
 
+# Convert a Markdown file to PDF
+# Usage: make md2pdf FILE=document.md
 md2pdf:
-	uv run md2pdf.py "$(FILE)"
+ifndef FILE
+	$(error FILE variable is not set. Usage: make md2pdf FILE=path/to/file.md)
+endif
+	uv run -m src.cli_app.md2pdf "$(FILE)"
+
+run-api:
+	$(eval export PYTHONPATH=.)
+	uv run uvicorn src.api.server:app --reload --port 8000
+
+check-ext:
+	@echo "Checking Chrome Extension path..."
+	@powershell -Command "Get-ChildItem src/chrome_extension/"
