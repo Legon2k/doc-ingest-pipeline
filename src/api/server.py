@@ -204,7 +204,7 @@ async def finalize_application(payload: FinalizePayload):
 
     card_path = target_dir / "application_card.yaml"
     with open(card_path, "w", encoding="utf-8") as f:
-        yaml.dump(card_data, f, allow_unicode=True)
+        yaml.dump(card_data, f, allow_unicode=True, sort_keys=False)
 
     # 2. Create note in Obsidian vault via LocalArchiveExporter
     try:
