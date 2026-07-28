@@ -63,7 +63,7 @@ document.getElementById("btnProcess").addEventListener("click", async () => {
     const response = await fetch(`${API_BASE}/process-resume`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markdown_text: text, url: tab ? tab.url : "" })
+      body: JSON.stringify({ markdown_text: text, source_url: tab ? tab.url : "" })
     });
 
     if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -74,6 +74,7 @@ document.getElementById("btnProcess").addEventListener("click", async () => {
     const appState = {
       company: data.company,
       role: data.role,
+      source_url: data.source_url,
       folder_path: data.folder_path,
       pdf_path: data.pdf_path
     };
@@ -130,7 +131,8 @@ document.getElementById("btnFinalize").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         folder_path: state.activeApplication.folder_path,
-        url: tab ? tab.url : "",
+        source_url: state.activeApplication.source_url,
+        finalize_url: tab ? tab.url : "",
         company: state.activeApplication.company,
         role: state.activeApplication.role
       })

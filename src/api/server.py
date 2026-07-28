@@ -38,7 +38,7 @@ app.add_middleware(
 # ------------------------------------------------------------------
 class ResumePayload(BaseModel):
     markdown_text: str
-    url: Optional[str] = ""
+    source_url: Optional[str] = ""
 
 
 class CoverLetterPayload(BaseModel):
@@ -48,7 +48,8 @@ class CoverLetterPayload(BaseModel):
 
 class FinalizePayload(BaseModel):
     folder_path: str
-    url: str
+    source_url: str
+    finalize_url: str
     company: str
     role: str
     category: Optional[str] = "developer_dotnet"
@@ -151,6 +152,7 @@ async def process_resume(payload: ResumePayload):
         "status": "success",
         "company": company,
         "role": role,
+        "source_url": payload.source_url,
         "folder_path": str(archive_dir.resolve()),
         "pdf_path": str(pdf_file_path.resolve()),
         "md_path": str(md_file_path.resolve()),
@@ -192,9 +194,14 @@ async def finalize_application(payload: FinalizePayload):
         "company": payload.company,
         "role": payload.role,
         "applied_date": today,
-        "source_url": payload.url,
-        "status": "applied",
+        "source_url": payload.source_url,
     }
+
+    if payload.source_url != payload.finalize_url:
+        card_data["finalize_url"] = payload.finalize_url
+
+    card_data["status"] = "applied"    
+
     card_path = target_dir / "application_card.yaml"
     with open(card_path, "w", encoding="utf-8") as f:
         yaml.dump(card_data, f, allow_unicode=True)
